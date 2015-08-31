@@ -78,7 +78,8 @@ class edi_tools_edi_document(osv.Model):
         ----------------------------------------------------------------- '''
         res = dict.fromkeys(ids, False)
         for document in self.browse(cr, uid, ids, context=context):
-            res[document.id] = re.sub('<[^<]+?>', '',document.message_ids[0].body)
+            if document.message_ids:
+                res[document.id] = re.sub('<[^<]+?>', '',document.message_ids[0].body)
         return res
 
     _columns = {
