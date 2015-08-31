@@ -6,7 +6,7 @@
             <field name="direction">in</field>
             <field name="model">stock.picking</field>
             <field name="method">receive_edi_import_essers_pclo</field>
-            <field name="validator"></field>
+            <field name="validator">edi_import_essers_pclo_validator</field>
         </record>
     </data>
 </openerp>

@@ -5,12 +5,50 @@ import StringIO
 
 from openerp import api, _
 from openerp.osv import osv
+from openerp.addons.edi_tools.models.exceptions import EdiValidationError
 
 _logger = logging.getLogger(__name__)
 
 
 class stock_picking(osv.Model):
     _inherit = "stock.picking"
+
+    @api.model
+    def edi_import_essers_pclo_validator(self, document_ids):
+        ORDER_NUMBER = 'Ordernummer EDI'
+        ORDER_LINE_NUMBER = 'ORIGINAL'
+
+        move_db = self.env['stock.move']
+        edi_db = self.env['edi.tools.edi.document.incoming']
+
+        document = edi_db.browse(document_ids)
+        document.ensure_one()
+
+        content = self.cleanup_pclo_file(document.content)
+        reader = csv.DictReader(content, delimiter=';', quotechar='"', skipinitialspace=True)
+
+        sorted_rows = sorted(reader, key=lambda row: (row[ORDER_NUMBER], row[ORDER_LINE_NUMBER]))
+        for delivery_number, rws in groupby(sorted_rows, lambda row: row[ORDER_NUMBER]):
+            rows = list(rws)
+            delivery = self.env['stock.picking'].search([('name', '=', delivery_number.replace('_', '/'))], limit=1)
+
+            if not delivery:
+                raise EdiValidationError("Delivery %s doesn't exist" % (delivery_number.replace('_', '/')))
+
+            moves_not_assigned = delivery.move_lines.filtered(lambda ml: ml.state != 'assigned')
+            if moves_not_assigned:
+                raise EdiValidationError("Move lines present in delivery %s which don't have status assigned" % (delivery.name))
+
+            no_matching_move_line_for_edi_sequence = []
+            for row in rows:
+                move = delivery.move_lines.filtered(lambda ml: ml.edi_sequence == row[ORDER_LINE_NUMBER])
+                if not move:
+                    no_matching_move_line_for_edi_sequence.append(row[ORDER_LINE_NUMBER])
+
+            if no_matching_move_line_for_edi_sequence:
+                raise EdiValidationError("No move lines are found for following edi_sequences in delivery %s.<br/>%s" % (delivery.name, "<br/>".join(no_matching_move_line_for_edi_sequence)))
+
+        return True
 
     @api.cr_uid_context
     def receive_edi_import_essers_pclo(self, cr, uid, ids, context=None):
