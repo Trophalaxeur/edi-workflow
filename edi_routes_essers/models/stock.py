@@ -308,6 +308,8 @@ class stock_move(models.Model):
         sale_order = self.env['sale.order'].search([('name', '=', self.picking_id.origin)], limit=1)
         if sale_order:
             for customer_id in self.product_id.customer_ids:
-                if customer_id.name == sale_order.partner_id.parent_id:
+                if customer_id.name.id == sale_order.partner_id.parent_id.id:
                     EssersEdiBuilder().build_e1bptext_element(header_element, self._name_edi(line_num), '0', 'CIC', customer_id.product_code)
-                break
+                elif customer_id.name.id == sale_order.partner_id.id:
+                    EssersEdiBuilder().build_e1bptext_element(header_element, self._name_edi(line_num), '0', 'CIC', customer_id.product_code)
+
