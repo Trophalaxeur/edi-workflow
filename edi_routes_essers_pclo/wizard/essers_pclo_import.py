@@ -42,7 +42,6 @@ class essers_pclo_import(osv.osv_memory):
         pick_out_db = self.pool.get('stock.picking')
 
         content = pick_out_db.cleanup_pclo_file(pclofile)
-        content = self.preprocess_content(cr, uid, content)
         if pick_out_db.edi_import_essers_pclo(self, cr, uid, content, execute_deliver=execute_deliver, context=context):
             return {'type': 'ir.actions.act_window_close'}
         else:
