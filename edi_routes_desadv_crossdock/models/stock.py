@@ -176,7 +176,11 @@ class stock_picking(osv.Model, EDIMixin):
             for quant in tracking.quant_ids:
                 line_segment = {}
                 product = product_db.browse(cr, uid, quant.product_id.id, context)
-                so_ids = order_db.search(cr, uid, [('name', '=', quant.history_ids[0].picking_id[0].origin)]) #was origin, nog available on quant
+                sorted_history_ids = sorted(quant.history_ids, key=lambda move: move.date, reverse=True)
+                order_origin = sorted_history_ids[0].picking_id[0].origin
+                so_ids = order_db.search(cr, uid, [('name', '=', order_origin)]) #was origin, nog available on quant
+                if not so_ids:
+                    raise osv.except_orm(_('Error!'), _("No sales order found for origin \"%s\" via quant (%d)" % (order_origin, quant.id)))
                 order = order_db.browse(cr, uid, so_ids, context)
                 dtm = datetime.datetime.strptime(order.date_order, "%Y-%m-%d %H:%M:%S")
                 line_segment["num"] = line_counter
