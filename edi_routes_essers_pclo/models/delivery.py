@@ -56,7 +56,7 @@ class stock_picking(osv.Model):
         document = edi_db.browse(cr, uid, ids, context)  # edi doc
 
         content = self.cleanup_pclo_file(document.content)
-        self.edi_import_essers_pclo(cr, uid, content, execute_deliver=True, context=context)
+        self.edi_import_essers_pclo(cr, uid, content, context=context)
 
         return True
 
@@ -75,7 +75,7 @@ class stock_picking(osv.Model):
             content = [header] + body
         return content
 
-    def edi_import_essers_pclo(self, cr, uid, pclofile, execute_deliver=False, context=None):
+    def edi_import_essers_pclo(self, cr, uid, pclofile, context=None):
         pick_db = self.pool.get('stock.picking')
         move_db = self.pool.get('stock.move')
         pack_db = self.pool.get('stock.quant.package')
@@ -181,5 +181,5 @@ class stock_picking(osv.Model):
             unprocessed_ids = operation_db.search(cr, uid, ['&', ('picking_id', '=', delivery.id), '!', ('id', 'in', processed_ids)])
             operation_db.unlink(cr, uid, unprocessed_ids)
 
-            if execute_deliver:
-                delivery.do_transfer()
+            delivery.do_transfer()
+

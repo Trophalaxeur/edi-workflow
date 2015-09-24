@@ -17,13 +17,11 @@ class essers_pclo_import(osv.osv_memory):
     _columns = {
         'pclo_data': fields.binary('PCLO File', required=True),
         'pclo_fname': fields.char('PCLO Filename', size=128, required=True),
-        'deliver': fields.boolean('Deliver'),
         'note': fields.text('Log'),
     }
 
     _defaults = {
         'pclo_fname': 'pclo.csv',
-        'deliver': False,
     }
 
     def pclo_parsing(self, cr, uid, ids, context=None, batch=False, pclofile=None, pclofilename=None):
@@ -34,15 +32,13 @@ class essers_pclo_import(osv.osv_memory):
         try:
             pclofile = unicode(base64.decodestring(data.pclo_data))
             pclofilename = data.pclo_fname
-            execute_deliver = data.deliver
         except:
             raise osv.except_osv(_('Error'), _('Wizard in incorrect state. Please hit the Cancel button'))
             return {}
 
         pick_out_db = self.pool.get('stock.picking')
-
-        content = pick_out_db.cleanup_pclo_file(pclofile)
-        if pick_out_db.edi_import_essers_pclo(self, cr, uid, content, execute_deliver=execute_deliver, context=context):
+        content = pclofile.split("\n")
+        if pick_out_db.edi_import_essers_pclo(cr, uid, content, context=context):
             return {'type': 'ir.actions.act_window_close'}
         else:
             return {}

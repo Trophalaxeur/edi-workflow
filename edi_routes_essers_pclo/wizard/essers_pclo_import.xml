@@ -11,9 +11,6 @@
             <group col="2">
                 <field name="pclo_data" filename="pclo_fname"/>
             </group>
-            <group>
-                <field name="deliver"/>
-            </group>
             <footer>
                 <button name="pclo_parsing" string="_Import" type="object" class="oe_highlight"/>
                 or
