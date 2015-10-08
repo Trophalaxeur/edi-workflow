@@ -100,6 +100,23 @@ class sale_order(osv.Model, EDIMixin):
         # If we get all the way to here, the document is valid
         return True
 
+    def receive_edi_import_orders_d93a(self, cr, uid, ids, context=None):
+        edi_db = self.pool.get('edi.tools.edi.document.incoming')
+        document = edi_db.browse(cr, uid, ids, context)
+        return self.edi_import_orders_d93a(cr, uid, document, context=context)
+
+    def edi_import_orders_d93a(self, cr, uid, document, context=None):
+        data = json.loads(document.content)
+        data = data['message']
+        data['partys'] = data['partys'][0]['party']
+        data['lines'] = data['lines'][0]['line']
+        name = self.create_sale_order_d93a(cr, uid, data, context)
+        if not name:
+            raise except_orm(_('No sales order created!'), _('Something went wrong while creating the sales order.'))
+        edi_db = self.pool.get('edi.tools.edi.document.incoming')
+        edi_db.message_post(cr, uid, document.id, body='Sale order {!s} created'.format(name))
+        return True
+
     def receive_edi_import_orders_d96a(self, cr, uid, ids, context=None):
         edi_db = self.pool.get('edi.tools.edi.document.incoming')
         document = edi_db.browse(cr, uid, ids, context)
@@ -110,35 +127,53 @@ class sale_order(osv.Model, EDIMixin):
         data = data['message']
         data['partys'] = data['partys'][0]['party']
         data['lines'] = data['lines'][0]['line']
-        name = self.create_sale_order(cr, uid, data, context)
+        name = self.create_sale_order_d96a(cr, uid, data, context)
         if not name:
             raise except_orm(_('No sales order created!'), _('Something went wrong while creating the sales order.'))
         edi_db = self.pool.get('edi.tools.edi.document.incoming')
         edi_db.message_post(cr, uid, document.id, body='Sale order {!s} created'.format(name))
         return True
 
-    def create_sale_order(self, cr, uid, data, context):
-        # Prepare the call to create a sale order
-        param = {}
-        param['origin'] = data['docnum']
-        param['message_follower_ids'] = False
-        param['categ_ids'] = False
-        param['picking_policy'] = 'one'
-        param['order_policy'] = 'picking'
-        param['carrier_id'] = False
-        param['invoice_quantity'] = 'order'
-        param['client_order_ref'] = data['docnum']
-        param['requested_date'] = data['deldtm'][:4] + '-' + data['deldtm'][4:-2] + '-' + data['deldtm'][6:]
-        param['message_ids'] = False
-        param['note'] = False
-        param['project_id'] = False
-        param['incoterm'] = False
-        param['section_id'] = False
-
-        # Enter all partner data
+    def _build_party_header_93a(self, cr, uid, param, data, context=None):
         partner_db = self.pool.get('res.partner')
-        fiscal_pos = False
+        for party in data['partys']:
+            if party['qual'] == 'BY':
+                pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
+                buyer = partner_db.browse(cr, uid, pids, context)[0]
+                param['partner_id'] = buyer.id
+                param['user_id'] = buyer.user_id.id
+                param['fiscal_position'] = buyer.property_account_position.id
+                param['payment_term'] = buyer.property_payment_term.id
+                param['pricelist_id'] = buyer.property_product_pricelist.id
+                fiscal_pos = self.pool.get('account.fiscal.position').browse(cr, uid, buyer.property_account_position.id) or False
 
+            if party['qual'] == 'PR':
+                pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
+                iv = partner_db.browse(cr, uid, pids, context)[0]
+                param['partner_invoice_id'] = iv.id
+
+            if party['qual'] == 'DP':
+                pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
+                dp = partner_db.browse(cr, uid, pids, context)[0]
+                param['partner_shipping_id'] = dp.id
+
+        # if IV partner is not present invoice partner is
+        #  - parent of BY or
+        #  - BY
+
+        if not param.get('partner_invoice_id', None):
+            buyer = partner_db.browse(cr, uid, param['partner_id'], context)
+            param['partner_invoice_id'] = buyer.id
+            if buyer.parent_id:
+                param['partner_invoice_id'] = buyer.parent_id.id
+        
+        if 'partner_shipping_id' not in param:
+            param['partner_shipping_id'] = param['partner_id']
+
+        return param
+
+    def _build_party_header_96a(self, cr, uid, param, data, context=None):
+        partner_db = self.pool.get('res.partner')
         for party in data['partys']:
             if party['qual'] == 'BY':
                 pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
@@ -163,6 +198,7 @@ class sale_order(osv.Model, EDIMixin):
         # if IV partner is not present invoice partner is
         #  - parent of BY or
         #  - BY
+
         if not param.get('partner_invoice_id', None):
             buyer = partner_db.browse(cr, uid, param['partner_id'], context)
             param['partner_invoice_id'] = buyer.id
@@ -171,6 +207,55 @@ class sale_order(osv.Model, EDIMixin):
 
         if 'partner_shipping_id' not in param:
             param['partner_shipping_id'] = param['partner_id']
+
+        return param
+
+
+    def create_sale_order_d93a(self, cr, uid, data, context=None):
+        param = {}
+        
+        param = self.create_sale_order(cr, uid, param, data, context)
+        param = self._build_party_header_93a(cr, uid, param, data, context)
+
+        # Actually create the sale order
+        sid = self.create(cr, uid, param, context=None)
+        so = self.browse(cr, uid, [sid], context)[0]
+        return so.name
+
+    def create_sale_order_d96a(self, cr, uid, data, context=None):
+        param = {}
+
+        param = self.create_sale_order(cr, uid, param, data, context)
+        param = self._build_party_header_96a(cr, uid, param, data, context)
+
+        # Actually create the sale order
+        sid = self.create(cr, uid, param, context=None)
+        so = self.browse(cr, uid, [sid], context)[0]
+        return so.name
+
+    def create_sale_order(self, cr, uid, param, data, context):
+        # Prepare the call to create a sale order
+        param['origin'] = data['docnum']
+        param['message_follower_ids'] = False
+        param['categ_ids'] = False
+        param['picking_policy'] = 'one'
+        param['order_policy'] = 'picking'
+        param['carrier_id'] = False
+        param['invoice_quantity'] = 'order'
+        param['client_order_ref'] = data['docnum']
+        param['requested_date'] = data['deldtm'][:4] + '-' + data['deldtm'][4:6] + '-' + data['deldtm'][6:8]
+        param['message_ids'] = False
+        param['note'] = False
+        param['project_id'] = False
+        param['incoterm'] = False
+        param['section_id'] = False
+        # import pdb; pdb.set_trace()
+        # Enter all partner data
+        #partner_db = self.pool.get('res.partner')
+        fiscal_pos = False
+        # self._build_party_header(self, cr, uid, param, data['parties'], context)
+
+
         if 'user_id' not in param:
             param['user_id'] = uid
         elif not param['user_id']:
@@ -200,7 +285,11 @@ class sale_order(osv.Model, EDIMixin):
 
             detail['product_uom_qty'] = line['ordqua']
             detail['customer_product_code'] = False
-            detail['name'] = prod.name
+            # If a description is given from the customer, use that as the product name.
+            if 'desc' in line:
+                detail['name'] = line['desc'] + ' ' + prod.name
+            else:
+                detail['name'] = prod.name + ' ' + prod.description_sale
             detail['delay'] = False
             detail['discount'] = False
             detail['address_allotment_id'] = False
@@ -230,10 +319,7 @@ class sale_order(osv.Model, EDIMixin):
             order_line.append(detail)
             param['order_line'].append(order_line)
 
-        # Actually create the sale order
-        sid = self.create(cr, uid, param, context=None)
-        so = self.browse(cr, uid, [sid], context)[0]
-        return so.name
+        return param
 
     def _get_date_planned(self, cr, uid, order, line, start_date, context=None):
         result = super(sale_order, self)._get_date_planned(cr, uid, order, line, start_date, context)
