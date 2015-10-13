@@ -25,7 +25,8 @@ class stock_picking(models.Model):
         if not record.partner_id.expertm_reference:
             return False
         if record.origin:
-            order = self.env['sale.order'].search([('name', '=', record.origin)])
+            orderref = record.origin.partition(':')
+            order = self.env['sale.order'].search([('name', '=', orderref[0])])
             if not order.partner_id.expertm_reference:
                 return False
         return True
@@ -38,15 +39,27 @@ class stock_picking(models.Model):
             raise except_orm(_('Invalid pickings in selection!'), _('The following pickings are invalid, please remove from selection. %s') % (map(lambda record: record.name, invalid_pickings)))
 
         for picking in valid_pickings:
-            content = picking.edi_export_essers(picking, None)
-            result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_essers', type='XML')
-            if not result:
-                raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
-
+            #import pdb; pdb.set_trace()
+            out_pickings = self.env['stock.picking'].search([('group_id', '=', picking.group_id.id), ('picking_type_id', '=', 2)])
+            if len(out_pickings) != 1:
+                raise except_orm(_('EDI send failed!', _('EDI send failed because the number of related OUT pickings was not one')))
+            for out_picking in out_pickings:
+                content = out_picking.edi_export_essers(out_picking, None)
+                result = self.env['edi.tools.edi.document.outgoing'].create_from_content(out_picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_essers', type='XML')
+                if not result:
+                    raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
+            
+            # transfer the transit picking
+            if not picking.pack_operation_ids:
+                picking.do_prepare_partial()
+            
+            if picking.pack_operation_ids:
+                picking.do_transfer()
         return True
 
     @api.model
     def edi_export_essers(self, delivery, edi_struct=None):
+
         sale_order = False
         if delivery.origin:
             sale_order = self.env['sale.order'].search([('name', '=', delivery.origin)], limit=1)
@@ -255,7 +268,7 @@ class stock_picking(models.Model):
         content = xmltodict.parse(document.content)
         content = content['SHP_OBDLV_CONFIRM_DECENTRAL02']['IDOC']['E1SHP_OBDLV_CONFIRM_DECENTR']
 
-        delivery = self.search([('name', '=', content['DELIVERY'].replace('_', '/'))])
+        delivery = self.search([('name', '=', content['DELIVERY'].replace('_', '/').replace('PCK', 'OUT'))])
         _logger.debug("Delivery found %d (%s)", delivery.id, delivery.name)
 
         if delivery.partner_id in document.flow_id.ignore_partner_ids:
