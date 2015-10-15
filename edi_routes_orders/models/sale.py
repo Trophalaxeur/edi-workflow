@@ -166,7 +166,7 @@ class sale_order(osv.Model, EDIMixin):
             param['partner_invoice_id'] = buyer.id
             if buyer.parent_id:
                 param['partner_invoice_id'] = buyer.parent_id.id
-        
+
         if 'partner_shipping_id' not in param:
             param['partner_shipping_id'] = param['partner_id']
 
@@ -210,10 +210,9 @@ class sale_order(osv.Model, EDIMixin):
 
         return param
 
-
     def create_sale_order_d93a(self, cr, uid, data, context=None):
         param = {}
-        
+
         param = self.create_sale_order(cr, uid, param, data, context)
         param = self._build_party_header_93a(cr, uid, param, data, context)
 
@@ -249,13 +248,7 @@ class sale_order(osv.Model, EDIMixin):
         param['project_id'] = False
         param['incoterm'] = False
         param['section_id'] = False
-        # import pdb; pdb.set_trace()
-        # Enter all partner data
-        #partner_db = self.pool.get('res.partner')
         fiscal_pos = False
-        # self._build_party_header(self, cr, uid, param, data['parties'], context)
-
-
         if 'user_id' not in param:
             param['user_id'] = uid
         elif not param['user_id']:
@@ -298,7 +291,7 @@ class sale_order(osv.Model, EDIMixin):
             detail['type'] = 'make_to_stock'
             detail['product_packaging'] = False
 
-            # Tax swapping calculations     u'tax_id': [[6,False, [1,3] ]],
+            # Tax swapping calculations u'tax_id': [[6,False, [1,3] ]],
             detail['tax_id'] = False
             if prod.taxes_id:
                 detail['tax_id'] = [[6, False, []]]
