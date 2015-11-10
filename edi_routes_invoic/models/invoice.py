@@ -128,7 +128,7 @@ class account_invoice(osv.Model, EDIMixin):
             edi_doc['FACTUURPLAATS'] = partner.ref
             edi_doc['BTWFACTUUR'] = partner.vat
             edi_doc['ORDERPLAATS'] = order.partner_id.ref
-            edi_doc['ORDERNAAM'] = order.partner_id.name
+            edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
             edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
             edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
             edi_doc['ORDERSTAD'] = order.partner_id.city
@@ -139,7 +139,7 @@ class account_invoice(osv.Model, EDIMixin):
                 edi_doc['LEVERANCIER'] = partner.ref
                 edi_doc['BTWLEVERANCIER'] = partner.vat
                 edi_doc['ORDERPLAATS'] = order.partner_id.ref
-                edi_doc['ORDERNAAM'] = order.partner_id.name
+                edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
                 edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
                 edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
                 edi_doc['ORDERSTAD'] = order.partner_id.city
