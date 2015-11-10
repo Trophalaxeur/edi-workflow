@@ -41,8 +41,8 @@ class stock_picking(models.Model):
         for picking in valid_pickings:
             #import pdb; pdb.set_trace()
             out_pickings = self.env['stock.picking'].search([('group_id', '=', picking.group_id.id), ('picking_type_id', '=', 2)])
-            if len(out_pickings) != 1:
-                raise except_orm(_('EDI send failed!', _('EDI send failed because the number of related OUT pickings was not one')))
+            #if len(out_pickings) != 1:
+            #    raise except_orm(_('EDI send failed!', _('EDI send failed because the number of related OUT pickings was not one')))
             for out_picking in out_pickings:
                 content = out_picking.edi_export_essers(out_picking, None)
                 result = self.env['edi.tools.edi.document.outgoing'].create_from_content(out_picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_essers', type='XML')
@@ -50,11 +50,11 @@ class stock_picking(models.Model):
                     raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
             
             # transfer the transit picking
-            if not picking.pack_operation_ids:
-                picking.do_prepare_partial()
-            
-            if picking.pack_operation_ids:
-                picking.do_transfer()
+            #if not picking.pack_operation_ids:
+            #    picking.do_prepare_partial()
+            #
+            #if picking.pack_operation_ids:
+            #    picking.do_transfer()
         return True
 
     @api.model
