@@ -213,8 +213,8 @@ class sale_order(osv.Model, EDIMixin):
     def create_sale_order_d93a(self, cr, uid, data, context=None):
         param = {}
 
-        param = self.create_sale_order(cr, uid, param, data, context)
         param = self._build_party_header_93a(cr, uid, param, data, context)
+        param = self.create_sale_order(cr, uid, param, data, context)
 
         # Actually create the sale order
         sid = self.create(cr, uid, param, context=None)
@@ -224,8 +224,8 @@ class sale_order(osv.Model, EDIMixin):
     def create_sale_order_d96a(self, cr, uid, data, context=None):
         param = {}
 
-        param = self.create_sale_order(cr, uid, param, data, context)
         param = self._build_party_header_96a(cr, uid, param, data, context)
+        param = self.create_sale_order(cr, uid, param, data, context)
 
         # Actually create the sale order
         sid = self.create(cr, uid, param, context=None)
@@ -248,7 +248,7 @@ class sale_order(osv.Model, EDIMixin):
         param['project_id'] = False
         param['incoterm'] = False
         param['section_id'] = False
-        fiscal_pos = False
+        fiscal_pos = self.pool.get('account.fiscal.position').browse(cr, uid, param['fiscal_position']) or False
         if 'user_id' not in param:
             param['user_id'] = uid
         elif not param['user_id']:
