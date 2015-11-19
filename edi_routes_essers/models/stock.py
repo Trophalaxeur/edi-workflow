@@ -39,7 +39,6 @@ class stock_picking(models.Model):
             raise except_orm(_('Invalid pickings in selection!'), _('The following pickings are invalid, please remove from selection. %s') % (map(lambda record: record.name, invalid_pickings)))
 
         for picking in valid_pickings:
-            #import pdb; pdb.set_trace()
             out_pickings = self.env['stock.picking'].search([('group_id', '=', picking.group_id.id), ('picking_type_id', '=', 2)])
             #if len(out_pickings) != 1:
             #    raise except_orm(_('EDI send failed!', _('EDI send failed because the number of related OUT pickings was not one')))
@@ -48,7 +47,7 @@ class stock_picking(models.Model):
                 result = self.env['edi.tools.edi.document.outgoing'].create_from_content(out_picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_essers', type='XML')
                 if not result:
                     raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
-            
+
             # transfer the transit picking
             #if not picking.pack_operation_ids:
             #    picking.do_prepare_partial()
@@ -325,4 +324,3 @@ class stock_move(models.Model):
                     EssersEdiBuilder().build_e1bptext_element(header_element, self._name_edi(line_num), '0', 'CIC', customer_id.product_code)
                 elif customer_id.name.id == sale_order.partner_id.id:
                     EssersEdiBuilder().build_e1bptext_element(header_element, self._name_edi(line_num), '0', 'CIC', customer_id.product_code)
-
