@@ -26,7 +26,7 @@ class EdiToolsEdiDocumentOutgoing(models.Model):
 
         return True
 
-    @api.model
+    @api.multi
     def edi_export_edi_invoic_overview(self):
         result = '<html>\n<table width="100%">\n'
         # companydetails
@@ -42,7 +42,9 @@ class EdiToolsEdiDocumentOutgoing(models.Model):
         result += '</td>\n'
 
         # partnerdetails
-        partner = self.partner_id
+        for partners in self:
+            partner = partners.partner_id
+
         result += '<td colspan="2" valign="top">Bestemmeling:</td><td colspan="2" valign="top">\n'
         if partner.name: result += partner.name + '<br/>\n'
         if partner.street: result += partner.street + '<br/>\n'
