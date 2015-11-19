@@ -31,7 +31,6 @@ class EdiToolsEdiDocumentOutgoing(models.Model):
         result = '<html>\n<table width="100%">\n'
         # companydetails
         company = self.env['res.company'].search([('id','=',1)])
-        import pdb; pdb.set_trace()
         result += '<tr>\n'
         result += '<td colspan="2" valign="top">Afzender:</td>\n<td colspan="2" valign="top">'
         if company.name: result += company.name + '<br/>\n'
