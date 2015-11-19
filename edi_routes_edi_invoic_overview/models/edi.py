@@ -21,7 +21,7 @@ class EdiToolsEdiDocumentOutgoing(models.Model):
             raise except_orm(_('Invalid EDI documents in selection!'), _('The following EDI documents are invalid, please remove from selection. %s') % (map(lambda record: record.name, invalid_edi_documents)))
 
         content = self.edi_export_edi_invoic_overview()
-        document_name = "%s - %s" % (partner_id.name, datetime.strftime(datetime.utcnow(), DEFAULT_SERVER_DATE_FORMAT))
+        document_name = "%s-%s" % (partner_id.name, datetime.strftime(datetime.utcnow(), DEFAULT_SERVER_DATE_FORMAT))
         self.env['edi.tools.edi.document.outgoing'].create_from_content(document_name, content, partner_id.id, 'edi.tools.edi.document.outgoing', 'send_edi_export_edi_invoic_overview', type='STRING')
 
         return True
@@ -58,7 +58,7 @@ class EdiToolsEdiDocumentOutgoing(models.Model):
         # Sending details
         now = datetime.now()
         result += '<tr><td colspan="3">Verzendingsdatum: ' + now.strftime("%d/%m/%Y") + '</td>\n'
-        overview = "%s - %s" % (partner.name, datetime.strftime(datetime.utcnow(), DEFAULT_SERVER_DATE_FORMAT))
+        overview = "%s-%s" % (partner.name, datetime.strftime(datetime.utcnow(), DEFAULT_SERVER_DATE_FORMAT))
         result += '<td colspan="3">Interchange: ' + overview + '</td></tr>\n'
         result += '<tr><td>&nbsp;</td></tr>\n'
 
