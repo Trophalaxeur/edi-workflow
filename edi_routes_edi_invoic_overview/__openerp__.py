@@ -18,6 +18,7 @@ This module allows you to select INVOIC D96A(out) outgoing documents in order to
     ],
     'data': [
         'data/config.xml',
+        'data/scheduler.xml',
     ],
     'installable': True,
     'auto_install': False,

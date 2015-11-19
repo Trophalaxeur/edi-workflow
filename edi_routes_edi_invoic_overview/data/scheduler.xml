@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+        <record id="edi_invoic_overview_out_scheduler" model="ir.cron">
+            <field name="name">Invoice Overview(out) Scheduler</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="doall" eval="False" />
+            <field name="active" eval="False" />
+            <field name="nextcall" eval="time.strftime('%Y-%m-%d 23:00')" />
+            <field name="model">edi.tools.edi.document.outgoing</field>
+            <field name="function">run_send_edi_export_edi_invoic_overview</field>
+            <field name="args">()</field>
+        </record>
+    </data>
+</openerp>

@@ -127,3 +127,23 @@ class EdiToolsEdiDocumentOutgoing(models.Model):
 
         result += '</table></html>\n'
         return result
+
+    @api.model
+    def run_send_edi_export_edi_invoic_overview(self):
+        flow = self.env['edi.tools.edi.flow'].search([('model', '=', 'edi.tools.edi.document.outgoing'), ('name', '=', 'Invoice Overview(out)')], limit=1)
+        partnerflows = self.env['edi.tools.edi.partnerflow'].search([('flow_id', '=', flow.id), ('partnerflow_active', '=', True)])
+        creation_date_start = datetime.strftime(datetime.utcnow(), '%Y-%m-%d 00:00:00')
+        for partnerflow in partnerflows:
+            import pdb; pdb.set_trace()
+
+            document_flow = self.env['edi.tools.edi.flow'].search([('model', '=', 'account.invoice'), ('name', '=', 'INVOIC D96A(out)')], limit=1)
+            documents = self.env['edi.tools.edi.document.outgoing'].search([
+                ('partner_id', '=', partnerflow.partnerflow_id.id),
+                ('flow_id', '=', document_flow.id),
+                ('create_date', '>=', creation_date_start)
+            ])
+            if len(documents) == 0:
+                next
+            content = documents.edi_export_edi_invoic_overview()
+            document_name = "%s-%s" % (partnerflow.partnerflow_id.name, datetime.strftime(datetime.utcnow(), DEFAULT_SERVER_DATE_FORMAT))
+            self.env['edi.tools.edi.document.outgoing'].create_from_content(document_name, content, partnerflow.partnerflow_id.id, 'edi.tools.edi.document.outgoing', 'send_edi_export_edi_invoic_overview', type='STRING')
