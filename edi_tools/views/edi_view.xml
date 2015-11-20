@@ -226,6 +226,8 @@
                     <field name="flow_id"/>
                     <field name="partner_id"/>
                     <separator/>
+                    <filter name="today" string="Today" domain="[('create_date','&lt;=', time.strftime('%Y-%m-%d')),('create_date','&gt;=',time.strftime('%Y-%m-%d'))]" help="month"/>
+                    <separator/>
                     <group expand="0" string="Group By...">
                         <filter context="{'group_by':'partner_id'}"
                             domain="[]" name="edi_group_by_partner" string="Partner"/>
