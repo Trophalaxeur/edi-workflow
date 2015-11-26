@@ -111,7 +111,7 @@ class stock_picking(models.Model):
     @api.model
     def edi_import_vrd(self, document):
         data = json.loads(document.content)[0]
-        delivery = self.search([('name', '=', data['name'])])
+        delivery = self.search([('name', '=', data['name'].replace('PCK', 'OUT'))])
 
         _logger.debug("Delivery found %d (%s)", delivery.id, delivery.name)
 
