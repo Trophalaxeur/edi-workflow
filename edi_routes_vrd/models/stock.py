@@ -28,6 +28,14 @@ class stock_picking(models.Model):
             result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_vrd')
             if not result:
                 raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
+
+            transfer the transit picking
+            if not picking.pack_operation_ids:
+               picking.do_prepare_partial()
+
+            if picking.pack_operation_ids:
+               picking.do_transfer()
+
         return True
 
     @api.model
