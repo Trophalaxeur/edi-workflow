@@ -13,8 +13,7 @@ class stock_picking(models.Model):
 
     @api.model
     def valid_for_edi_export_vrd(self, record):
-        if record.state != 'assigned':
-            return False
+        _logger.info("valid for export")
         return True
 
     @api.multi
@@ -28,24 +27,17 @@ class stock_picking(models.Model):
             result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_vrd')
             if not result:
                 raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
-
-            transfer the transit picking
-            if not picking.pack_operation_ids:
-               picking.do_prepare_partial()
-
-            if picking.pack_operation_ids:
-               picking.do_transfer()
-
         return True
 
     @api.model
     def edi_export_vrd(self, delivery):
         content = self._build_delivery_header(delivery)
+        _logger.info("header built")
         content['partner_id'] = self._build_delivery_partner(delivery.partner_id)
         content['move_lines'] = []
         for move in delivery.move_lines:
             content['move_lines'].append(self._build_delivery_move(move))
-        return content
+        return [content]
 
     @api.model
     def _build_delivery_header(self, delivery):
@@ -87,7 +79,7 @@ class stock_picking(models.Model):
 
         return {
             '__id': move.id,
-            'product_qty': move.product_uom_qty,
+            'product_qty': move.reserved_availability,
             'name': move.name,
             'weight': move.weight,
             'weight_net': move.weight_net,
@@ -107,6 +99,14 @@ class stock_picking(models.Model):
         data = json.loads(document.content)[0]
         if data['state'] not in ['done', 'altered', 'cancelled']:
             raise EdiValidationError('No valid state found.')
+
+        # Check if we can find the delivery
+        delivery = self.search([('name', '=', data['name'])], limit=1)
+        if not delivery:
+            raise EdiValidationError('Could not find the referenced delivery: {!s}.'.format(content['name']))
+
+        if delivery.state == 'done':
+            raise EdiValidationError("Delivery already transfered.")        
 
         return True
 
