@@ -40,9 +40,9 @@ class stock_picking(models.Model):
 
         for picking in valid_pickings:
             content = picking.edi_export_essers(picking, None)
-                result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_essers', type='XML')
-                if not result:
-                    raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
+            result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_essers', type='XML')
+            if not result:
+                raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
         return True
 
     @api.model
