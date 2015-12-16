@@ -226,6 +226,8 @@
                     <field name="flow_id"/>
                     <field name="partner_id"/>
                     <separator/>
+                    <filter name="today" string="Today" domain="[('create_date','&lt;=', time.strftime('%Y-%m-%d')),('create_date','&gt;=',time.strftime('%Y-%m-%d'))]" help="month"/>
+                    <separator/>
                     <group expand="0" string="Group By...">
                         <filter context="{'group_by':'partner_id'}"
                             domain="[]" name="edi_group_by_partner" string="Partner"/>
@@ -322,12 +324,12 @@
             <field name="name">view.edi.tools.edi.document.incoming.form</field>
             <field name="model">edi.tools.edi.document.incoming</field>
             <field name="arch" type="xml">
-                <form  
+                <form
                     string="Incoming Document" version="7.0">
                     <header>
                         <button name="button_to_ready"
                             states="new,in_error" string="Ready"/>
-                        <button name="document_manual_process" type="object" 
+                        <button name="document_manual_process" type="object"
                             states="ready" string="Process" class="oe_highlight"/>
                         <button name="button_to_archived"
                             states="new,ready,processed,in_error" string="Archive"/>
@@ -365,14 +367,14 @@
                 <form create="false" duplicate="false" edit="false"
                     string="Outgoing Document" version="7.0">
                     <header>
-                        <button name="document_manual_process" type="object" 
+                        <button name="document_manual_process" type="object"
                             states="new,in_error" string="Process" class="oe_highlight"/>
                     </header>
                     <sheet>
                         <h1>
                             <field class="oe_inline" name="name" readonly="1"/>
                         </h1>
-                        
+
                         <group>
                             <group>
                                 <field name="partner_id" readonly="1"/>
