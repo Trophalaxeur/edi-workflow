@@ -61,26 +61,6 @@ class SaleOrder(models.Model, EDIMixin):
 
         param['partner_id'] = customer_address.id
 
-            if party['qual'] == 'BY':
-                pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
-                buyer = partner_db.browse(cr, uid, pids, context)[0]
-                param['partner_id'] = buyer.id
-                param['user_id'] = buyer.user_id.id
-                param['fiscal_position'] = buyer.property_account_position.id
-                param['payment_term'] = buyer.property_payment_term.id
-                param['pricelist_id'] = buyer.property_product_pricelist.id
-                fiscal_pos = self.pool.get('account.fiscal.position').browse(cr, uid, buyer.property_account_position.id) or False
-
-            if party['qual'] == 'IV':
-                pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
-                iv = partner_db.browse(cr, uid, pids, context)[0]
-                param['partner_invoice_id'] = iv.id
-
-            if party['qual'] == 'DP':
-                pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
-                dp = partner_db.browse(cr, uid, pids, context)[0]
-                param['partner_shipping_id'] = dp.id
-
         # if IV partner is not present invoice partner is
         #  - parent of BY or
         #  - BY
@@ -137,19 +117,19 @@ class SaleOrder(models.Model, EDIMixin):
             product = self.env['product.product'].search([('ean13', '=', line['product']['sku'])], limit=1)
 
             line_params = {
-                'name' : product.name
-                'property_ids'          : False
-                'product_id'            : product.id
-                'product_uom'           : product.uom_id.id
-                'product_uos_qty'       : line['quantity']
-                'product_uom_qty'       : line['quantity']
-                'price_unit'            : line['price']
-                'delay'                 : False
-                'discount'              : False
-                'address_allotment_id'  : False
-                'type'                  : 'make_to_stock'
-                'product_packaging'     : False
-                'tax_id'                : [[6, False, self.env['account.fiscal.position'].map_tax(product.taxes_id).ids]]
+                'name' 			: product.name,
+                'property_ids'          : False,
+                'product_id'            : product.id,
+                'product_uom'           : product.uom_id.id,
+                'product_uos_qty'       : line['quantity'],
+                'product_uom_qty'       : line['quantity'],
+                'price_unit'            : line['price'],
+                'delay'                 : False,
+                'discount'              : False,
+                'address_allotment_id'  : False,
+                'type'                  : 'make_to_stock',
+                'product_packaging'     : False,
+                'tax_id'                : [[6, False, self.env['account.fiscal.position'].map_tax(product.taxes_id).ids]],
             }
 
             param['order_line'].append(line_params)
