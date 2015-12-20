@@ -3,7 +3,7 @@ from openerp import SUPERUSER_ID
 from openerp import api, fields, models, _
 from openerp.exceptions import UserError
 from openerp.tools import float_is_zero, float_compare, DEFAULT_SERVER_DATETIME_FORMAT
-from openerp.addons.edi import EDIMixin
+#from openerp.addons.edi import EDIMixin
 from openerp.addons.edi_tools.models.exceptions import EdiValidationError
 import openerp.addons.decimal_precision as dp
 import logging
@@ -11,7 +11,7 @@ import json
 _logger = logging.getLogger(__name__)
 
 
-class SaleOrder(models.Model, EDIMixin):
+class SaleOrder(models.Model):
     _inherit = "sale.order"
 
     @api.model
@@ -20,7 +20,7 @@ class SaleOrder(models.Model, EDIMixin):
 
         # Read the EDI Document
         edi_db = self.env['edi.tools.edi.document.incoming']
-        document = edi_db.browse(document_ids)
+        document = edi_db.browse(ids)
         document.ensure_one()
 
         try:
@@ -37,15 +37,15 @@ class SaleOrder(models.Model, EDIMixin):
         return True
 
     @api.model
-    def receive_edi_import_orders_handig(self, document_ids):
-        document = self.env['edi.tools.edi.document.incoming'].browse(document_ids)
+    def receive_edi_import_orders_handig(self, document_id):
+        document = self.env['edi.tools.edi.document.incoming'].browse(document_id)
         document.ensure_one()
         return self.edi_import_orders_handig(document)
 
     @api.model
     def edi_import_orders_handig(self, document):
         data = json.loads(document.content)
-        name = self.create_sale_order_handig(self, data)
+        name = self.create_sale_order_handig(data)
         if not name:
             raise except_orm(_('No sales order created!'), _('Something went wrong while creating the sales order.'))
         edi_db = self.env['edi.tools.edi.document.incoming']
@@ -54,82 +54,83 @@ class SaleOrder(models.Model, EDIMixin):
 
     @api.model
     def _build_party_header_handig(self, param, data):
-        partner_db = self.env['res.partner']
+	partner_db = self.env['res.partner']
         customer_address = data['billing_address']
         shipping_address = data['shipping_address']
         invoice_address = data['billing_address']
 
-        param['partner_id'] = customer_address.id
+	billing_partner, shipping_partner = self.resolve_customer_info(data['billing_address'], data['shipping_address'], data['email'])
 
-        # if IV partner is not present invoice partner is
-        #  - parent of BY or
-        #  - BY
+	param['partner_id'] = billing_partner.id
+	param['partner_invoice_id'] = billing_partner.id
+	param['partner_shipping_id'] = shipping_partner.id.id
 
-        if not param.get('partner_invoice_id', None):
-            buyer = partner_db.browse(cr, uid, param['partner_id'], context)
-            param['partner_invoice_id'] = buyer.id
-            if buyer.parent_id:
-                param['partner_invoice_id'] = buyer.parent_id.id
-
-        if 'partner_shipping_id' not in param:
-            param['partner_shipping_id'] = param['partner_id']
+        #if not param.get('partner_invoice_id', None):
+        #    buyer = partner_db.browse(param['partner_id'])
+        #    param['partner_invoice_id'] = buyer.id
+        #    if buyer.parent_id:
+        #        param['partner_invoice_id'] = buyer.parent_id.id
+	#
+        #if 'partner_shipping_id' not in param:
+        #    param['partner_shipping_id'] = param['partner_id']
 
         return param
 
     @api.model
     def create_sale_order_handig(self, data):
-        param = {}
+	param = {}
 
         param = self._build_party_header_handig(param, data)
-        param = self.create_sale_order(cr, uid, param, data, context)
+        param = self.create_sale_order(param, data)
 
         # Actually create the sale order
-        sid = self.create(cr, uid, param, context=None)
-        so = self.browse(cr, uid, [sid], context)[0]
-        return so.name
+        
+	import pdb; pdb.set_trace()
+	sid = self.env['sale.order'].create(param)
+        so = self.env['sale.order'].browse(sid)
+	return so.name
 
     @api.model
     def create_sale_order(self, param, data):
-        # Prepare the call to create a sale order
+	# Prepare the call to create a sale order
         param['origin'] = data['number']
-        param['message_follower_ids'] = False
-        param['categ_ids'] = False
+        #param['message_follower_ids'] = False
+        #param['categ_ids'] = False
         param['picking_policy'] = 'one'
-        param['order_policy'] = 'picking'
-        param['carrier_id'] = False
-        param['invoice_quantity'] = 'order'
+        #param['order_policy'] = 'picking'
+        #param['carrier_id'] = False
+        #param['invoice_quantity'] = 'order'
         param['client_order_ref'] = data['number']
-        param['message_ids'] = False
-        param['note'] = False
-        param['project_id'] = False
-        param['incoterm'] = False
-        param['section_id'] = False
-        fiscal_pos = self.pool.get('account.fiscal.position').browse(cr, uid, param['fiscal_position']) or False
-        if 'user_id' not in param:
-            param['user_id'] = uid
-        elif not param['user_id']:
-            param['user_id'] = uid
+        #param['message_ids'] = False
+        #param['note'] = False
+        #param['project_id'] = False
+        #param['incoterm'] = False
+        #param['section_id'] = False
+        #param['fiscal_position'] = 1
+	param['pricelist_id'] = 1
+	
+	# TO DO : Get Fiscal position from partner : self.env['res.partner'].browse(param['partner_id']).property_account_position_id
+	#fiscal_pos = self.env['account.fiscal.position'].browse(param['fiscal_position']) or False
+        #if 'user_id' not in param:
+        #    param['user_id'] = uid
+        #elif not param['user_id']:
+        #    param['user_id'] = uid
 
         # Create the line items
         pricelist_db = self.env['product.pricelist']
         param['order_line'] = []
         for line in data['line_items']:
-            product = self.env['product.product'].search([('ean13', '=', line['product']['sku'])], limit=1)
-
+	    product = self.env['product.product'].search([('barcode', '=', line['product']['sku'])], limit=1)
+	    import pdb; pdb.set_trace();
             line_params = {
                 'name' 			: product.name,
-                'property_ids'          : False,
                 'product_id'            : product.id,
                 'product_uom'           : product.uom_id.id,
                 'product_uos_qty'       : line['quantity'],
                 'product_uom_qty'       : line['quantity'],
                 'price_unit'            : line['price'],
-                'delay'                 : False,
-                'discount'              : False,
-                'address_allotment_id'  : False,
                 'type'                  : 'make_to_stock',
-                'product_packaging'     : False,
-                'tax_id'                : [[6, False, self.env['account.fiscal.position'].map_tax(product.taxes_id).ids]],
+                'tax_id'                : 3
             }
 
             param['order_line'].append(line_params)
@@ -138,23 +139,19 @@ class SaleOrder(models.Model, EDIMixin):
 
     @api.model
     def resolve_customer_info(self, billing_address, shipping_address, email):
-
         partner_db = self.env['res.partner']
-        country_db = self.evn['res.country']
+        country_db = self.env['res.country']
 
         # Check if this partner already exists
-        billing_partner = partner_db.search([('email', '=', email)])
+        billing_partner = partner_db.search([('email', '=', email)], limit=1)
         if billing_partner:
-            billing_partner = partner_db.browse(billing_partner[0])
-
             # Check if the shipment address exists
-            country_id = country_db.search([('code', '=', shipping_address['country'])])
+            country_id = self.env['res.country'].search([('code', '=', shipping_address['country'])])
             shipping_partner = False
-            partner_ids = partner_db.search([('parent_id','=',billing_partner.id)])
-            if partner_ids:
-                for partner in partner_db.browse(cr, uid, partner_ids):
-                    if partner.name == shipping_address['full_name'] and partner.city == shipping_address['city'] and partner.zip == shipping_address['zipcode'] and partner.street == shipping_address['address1'] and partner.street2 == shipping_address['address2'] and partner.country_id.id == country_id[0]:
-                        shipping_partner = partner
+            partners = partner_db.search([('parent_id', '=', billing_partner.id)])
+            for partner in partners:
+                if self.partner_exists(partner, param, country_id):
+                    shipping_partner = partner
 
             if shipping_partner:
                 return billing_partner, shipping_partner
@@ -169,7 +166,7 @@ class SaleOrder(models.Model, EDIMixin):
                 'city'       : billing_address['city'],
                 'zip'        : billing_address['zipcode'],
                 'street'     : billing_address['street'] + billing_address['house_number'] + billing_address['house_number_alt'],
-                'country_id' : country_id[0],
+                'country_id' : country_id[0].id,
                 'email'      : email,
                 'name'       : billing_address['firstname'] + billing_address['lastname']
             }
@@ -178,7 +175,7 @@ class SaleOrder(models.Model, EDIMixin):
             billing_partner = partner_db.browse(billing_partner)
 
         # If the shipping address doesn't exist yet, create it
-        country_id = country_db.search(cr, uid, [('code', '=', shipping_address['country']['iso'])])
+        country_id = country_db.search([('code', '=', shipping_address['country'])])
         vals = {
                 'active'     : True,
                 'customer'   : True,
@@ -186,12 +183,20 @@ class SaleOrder(models.Model, EDIMixin):
                 'city'       : shipping_address['city'],
                 'zip'        : shipping_address['zipcode'],
                 'street'     : shipping_address['street'] + shipping_address['house_number'] + shipping_address['house_number_alt'],
-                'country_id' : country_id[0],
+                'country_id' : country_id[0].id,
                 'email'      : email,
                 'name'       : shipping_address['firstname'] + shipping_address['lastname']
         }
 
         shipping_partner = partner_db.create(vals)
         shipping_partner = partner_db.browse(shipping_partner)
-
         return billing_partner, shipping_partner
+
+    @api.model
+    def partner_exists(self, partner, params, country_id):
+        return partner.name == shipping_address['full_name'] and \
+               partner.city == shipping_address['city'] and \
+               partner.zip == shipping_address['zipcode'] and \
+               partner.street == shipping_address['address1'] and \
+               partner.street2 == shipping_address['address2'] and \
+               partner.country_id.id == country_id.id
