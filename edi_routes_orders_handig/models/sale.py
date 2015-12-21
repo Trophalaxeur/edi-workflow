@@ -3,7 +3,6 @@ from openerp import SUPERUSER_ID
 from openerp import api, fields, models, _
 from openerp.exceptions import UserError
 from openerp.tools import float_is_zero, float_compare, DEFAULT_SERVER_DATETIME_FORMAT
-#from openerp.addons.edi import EDIMixin
 from openerp.addons.edi_tools.models.exceptions import EdiValidationError
 import openerp.addons.decimal_precision as dp
 import logging
@@ -49,7 +48,7 @@ class SaleOrder(models.Model):
         if not name:
             raise except_orm(_('No sales order created!'), _('Something went wrong while creating the sales order.'))
         edi_db = self.env['edi.tools.edi.document.incoming']
-        edi_db.message_post(self, body='Sale order {!s} created'.format(name))
+	edi_db.message_post(body=_("Sale order <em>%s</em> <b>created</b>.") % (name))
         return True
 
     @api.model
@@ -65,15 +64,6 @@ class SaleOrder(models.Model):
 	param['partner_invoice_id'] = billing_partner.id
 	param['partner_shipping_id'] = shipping_partner.id.id
 
-        #if not param.get('partner_invoice_id', None):
-        #    buyer = partner_db.browse(param['partner_id'])
-        #    param['partner_invoice_id'] = buyer.id
-        #    if buyer.parent_id:
-        #        param['partner_invoice_id'] = buyer.parent_id.id
-	#
-        #if 'partner_shipping_id' not in param:
-        #    param['partner_shipping_id'] = param['partner_id']
-
         return param
 
     @api.model
@@ -85,44 +75,28 @@ class SaleOrder(models.Model):
 
         # Actually create the sale order
         
-	import pdb; pdb.set_trace()
 	sid = self.env['sale.order'].create(param)
-        so = self.env['sale.order'].browse(sid)
+        so = self.env['sale.order'].browse(sid.id)
 	return so.name
 
     @api.model
     def create_sale_order(self, param, data):
 	# Prepare the call to create a sale order
         param['origin'] = data['number']
-        #param['message_follower_ids'] = False
-        #param['categ_ids'] = False
         param['picking_policy'] = 'one'
-        #param['order_policy'] = 'picking'
-        #param['carrier_id'] = False
-        #param['invoice_quantity'] = 'order'
         param['client_order_ref'] = data['number']
-        #param['message_ids'] = False
-        #param['note'] = False
-        #param['project_id'] = False
-        #param['incoterm'] = False
-        #param['section_id'] = False
         #param['fiscal_position'] = 1
 	param['pricelist_id'] = 1
 	
 	# TO DO : Get Fiscal position from partner : self.env['res.partner'].browse(param['partner_id']).property_account_position_id
 	#fiscal_pos = self.env['account.fiscal.position'].browse(param['fiscal_position']) or False
-        #if 'user_id' not in param:
-        #    param['user_id'] = uid
-        #elif not param['user_id']:
-        #    param['user_id'] = uid
 
         # Create the line items
         pricelist_db = self.env['product.pricelist']
         param['order_line'] = []
         for line in data['line_items']:
 	    product = self.env['product.product'].search([('barcode', '=', line['product']['sku'])], limit=1)
-	    import pdb; pdb.set_trace();
-            line_params = {
+            line_params = (0, _, {
                 'name' 			: product.name,
                 'product_id'            : product.id,
                 'product_uom'           : product.uom_id.id,
@@ -130,8 +104,7 @@ class SaleOrder(models.Model):
                 'product_uom_qty'       : line['quantity'],
                 'price_unit'            : line['price'],
                 'type'                  : 'make_to_stock',
-                'tax_id'                : 3
-            }
+            })
 
             param['order_line'].append(line_params)
 
