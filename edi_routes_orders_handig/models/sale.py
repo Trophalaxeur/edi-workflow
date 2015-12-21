@@ -135,7 +135,7 @@ class SaleOrder(models.Model):
             vals = {
                 'active'     : True,
                 'customer'   : True,
-                'is_company' : False,
+                'is_company' : False, # to be upgraded : if VAT > True
                 'city'       : billing_address['city'],
                 'zip'        : billing_address['zipcode'],
                 'street'     : billing_address['street'] + billing_address['house_number'] + billing_address['house_number_alt'],
@@ -153,6 +153,8 @@ class SaleOrder(models.Model):
                 'active'     : True,
                 'customer'   : True,
                 'is_company' : False,
+		'parent_id'  : billing_partner.id,
+		'type'	     : 'delivery',
                 'city'       : shipping_address['city'],
                 'zip'        : shipping_address['zipcode'],
                 'street'     : shipping_address['street'] + shipping_address['house_number'] + shipping_address['house_number_alt'],
