@@ -13,7 +13,7 @@ class stock_picking(models.Model):
 
     @api.model
     def valid_for_edi_export_vrd(self, record):
-        _logger.info("valid for export")
+        _logger.info("valid for export, woohoo")
         return True
 
     @api.multi
@@ -36,7 +36,10 @@ class stock_picking(models.Model):
         content['partner_id'] = self._build_delivery_partner(delivery.partner_id)
         content['move_lines'] = []
         for move in delivery.move_lines:
-            content['move_lines'].append(self._build_delivery_move(move))
+            _logger.info("move line found")
+            if move.reserved_availability > 0:
+                _logger.info("reserved > 0")
+                content['move_lines'].append(self._build_delivery_move(move))
         return [content]
 
     @api.model
@@ -141,7 +144,7 @@ class stock_picking(models.Model):
                 if len(move_line.linked_move_operation_ids) == 0:
                     raise except_orm(_('No pack operation found!'), _('No pack operation was found for __id %s in picking %s (%d)') % (edi_line['__id'], delivery.name, delivery.id))
                 if edi_line['state'] == 'cancelled':
-                    next
+                    continue
                 pack_operation = move_line.linked_move_operation_ids[0].operation_id
                 if edi_line['state'] == 'altered':
                     pack_operation.with_context(no_recompute=True).write({'product_qty': edi_line['product_qty']})
