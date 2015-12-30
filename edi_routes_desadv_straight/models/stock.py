@@ -68,7 +68,7 @@ class stock_picking(osv.Model, EDIMixin):
 
         for picking in valid_pickings:
             content = picking.edi_export_desadv_straight(picking, edi_struct=None)
-            result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_vrd')
+            result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_desadv_straight')
             if not result:
                 raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
         return True
@@ -82,13 +82,13 @@ class stock_picking(osv.Model, EDIMixin):
         company_db = self.pool.get('res.company')
         product_db = self.pool.get('product.product')
 
-        co_id = company_db.search(cr, uid, [])[0]
-        so_id = order_db.search(cr, uid, [('name', '=', delivery.origin)])
+        co_id = 1
+        so_id = self.env['sale.order'].search([('name', '=', delivery.origin)], limit=1)
         if not so_id:
             raise osv.except_osv(_('Warning!'), _("Could not find matching sales order for an item in your selection!"))
 
-        order = order_db.browse(cr, uid, so_id, context)[0]
-        company = company_db.browse(cr, uid, co_id, context)
+        order = self.env['sale.order'].browse(so_id)
+        company = self.env['res.company'].browse(co_id)
         now = datetime.datetime.now()
 
         # Basic header fields
@@ -98,10 +98,9 @@ class stock_picking(osv.Model, EDIMixin):
         edi_doc['message']['desadv_naam']      = delivery.desadv_name
         edi_doc['message']['berichtdatum'] = now.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['klantreferentie'] = delivery.order_reference
-        edi_doc['message']['orderdatum'] = d_order.strftime("%Y%m%d")
 
         if company:
-            partner = partner_db.browse(cr, uid, company.partner_id.id, context)
+            partner = self.env['res.partner'].browse(company.partner_id.id)
             if partner and partner.ref:
                 partner_doc = copy.deepcopy(dict(DESADV_PARTY))
                 partner_doc['qual'] = 'SU'
@@ -112,7 +111,7 @@ class stock_picking(osv.Model, EDIMixin):
                 partner_doc['gln'] = partner.ref
                 edi_doc['message']['partys']['party'].append(partner_doc)
 
-        partner = partner_db.browse(cr, uid, delivery.partner_id.id, context)
+        partner = self.env['res.partner'].browse(delivery.partner_id.id)
         if partner and partner.ref:
             partner_doc = copy.deepcopy(dict(DESADV_PARTY))
             partner_doc['qual'] = 'DP'
@@ -122,7 +121,7 @@ class stock_picking(osv.Model, EDIMixin):
         # Line items
         line_counter = 1
         for line in delivery.move_lines:
-            product = product_db.browse(cr, uid, line.product_id.id, context)
+            product = self.env['product.product'].browse(line.product_id.id)
             edi_line = copy.deepcopy(dict(DESADV_LINE))
             edi_line['lijnnummer'] = line_counter
             edi_line['ean']        = product.ean13
