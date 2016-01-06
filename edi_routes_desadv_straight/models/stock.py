@@ -83,7 +83,7 @@ class stock_picking(osv.Model, EDIMixin):
         product_db = self.pool.get('product.product')
 
         co_id = 1
-        so_id = self.env['sale.order'].search([('name', '=', delivery.origin)], limit=1)
+        so_id = self.env['sale.order'].search([('name', '=', delivery.origin)], limit=1).id
         if not so_id:
             raise osv.except_osv(_('Warning!'), _("Could not find matching sales order for an item in your selection!"))
 
@@ -94,29 +94,53 @@ class stock_picking(osv.Model, EDIMixin):
         # Basic header fields
         d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
 
-        edi_doc['message']['pakbonnummer'] = delivery.desadv_name
-        edi_doc['message']['desadv_naam']      = delivery.desadv_name
+        edi_doc['message']['pakbonnummer'] = delivery.name
+        edi_doc['message']['desadv_naam']      = delivery.name
+        edi_doc['message']['leverplandatum']   = d.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['berichtdatum'] = now.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['klantreferentie'] = delivery.order_reference
+
+        #if company:
+        #    partner = self.env['res.partner'].browse(company.partner_id.id)
+        #    if partner and partner.ref:
+        #        partner_doc = copy.deepcopy(dict(DESADV_PARTY))
+        #        partner_doc['qual'] = 'SU'
+        #        partner_doc['gln'] = partner.ref
+        #        edi_doc['message']['partys']['party'].append(partner_doc)
+        #        partner_doc = copy.deepcopy(dict(DESADV_PARTY))
+        #        partner_doc['qual'] = 'SH'
+        #        partner_doc['gln'] = partner.ref
+        #        edi_doc['message']['partys']['party'].append(partner_doc)
+
+        #partner = self.env['res.partner'].browse(delivery.partner_id.id)
+        #if partner and partner.ref:
+        #    partner_doc = copy.deepcopy(dict(DESADV_PARTY))
+        #    partner_doc['qual'] = 'DP'
+        #    partner_doc['gln'] = partner.ref
+        #    edi_doc['message']['partys']['party'].append(partner_doc)
+
+        partner = self.env['res.partner'].browse(order[0].partner_id.id)
+        if partner and partner.ref:
+            partner_doc = copy.deepcopy(dict(DESADV_PARTY))
+            partner_doc['qual'] = 'BY'
+            partner_doc['gln']  = partner.ref
+            edi_doc['message']['partys']['party'].append(partner_doc)
 
         if company:
             partner = self.env['res.partner'].browse(company.partner_id.id)
             if partner and partner.ref:
                 partner_doc = copy.deepcopy(dict(DESADV_PARTY))
                 partner_doc['qual'] = 'SU'
-                partner_doc['gln'] = partner.ref
-                edi_doc['message']['partys']['party'].append(partner_doc)
-                partner_doc = copy.deepcopy(dict(DESADV_PARTY))
-                partner_doc['qual'] = 'SH'
-                partner_doc['gln'] = partner.ref
+                partner_doc['gln']  = partner.ref
                 edi_doc['message']['partys']['party'].append(partner_doc)
 
         partner = self.env['res.partner'].browse(delivery.partner_id.id)
         if partner and partner.ref:
             partner_doc = copy.deepcopy(dict(DESADV_PARTY))
             partner_doc['qual'] = 'DP'
-            partner_doc['gln'] = partner.ref
+            partner_doc['gln']  = partner.ref
             edi_doc['message']['partys']['party'].append(partner_doc)
+ 
 
         # Line items
         line_counter = 1
