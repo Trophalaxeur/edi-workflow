@@ -274,7 +274,7 @@ class sale_order(osv.Model, EDIMixin):
             if 'price' in line:
                 detail['price_unit'] = line['price']
             else:
-                detail['price_unit'] = pricelist_db.price_get(cr, uid, [param['pricelist_id']], prod.id, 1, brico.id)[param['pricelist_id']]
+                detail['price_unit'] = pricelist_db.price_get(cr, uid, [param['pricelist_id']], prod.id, 1, 2640)[param['pricelist_id']]
 
             detail['product_uom_qty'] = line['ordqua']
             detail['customer_product_code'] = False
