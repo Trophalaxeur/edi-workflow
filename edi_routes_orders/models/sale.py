@@ -92,8 +92,8 @@ class sale_order(osv.Model, EDIMixin):
                 raise EdiValidationError('Could not resolve product {!s}.'.format(line['gtin']))
 
         # Validate timing information
-        if not 'deldtm' in data or not 'latedeltm' in data:
-            raise EdiValidationError('Could not find field: deldtm or latedeltm.')
+        if not 'deldtm' in data or not 'latedeldtm' in data:
+            raise EdiValidationError('Could not find field: deldtm or latedeldtm.')
         if not 'docdtm' in data:
             raise EdiValidationError('Could not find field: docdtm.')
 
