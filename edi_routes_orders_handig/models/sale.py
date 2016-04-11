@@ -70,11 +70,13 @@ class SaleOrder(models.Model):
     def create_sale_order_handig(self, data):
 	param = {}
 
+	_logger.debug("Building Party Header")
         param = self._build_party_header_handig(param, data)
+	_logger.debug("Building Sale Order")
         param = self.create_sale_order(param, data)
 
         # Actually create the sale order
-        
+        _logger.debug("Creating Sale Order")
 	sid = self.env['sale.order'].create(param)
         so = self.env['sale.order'].browse(sid.id)
 	return so.name
@@ -86,8 +88,9 @@ class SaleOrder(models.Model):
         param['picking_policy'] = 'one'
         param['client_order_ref'] = data['number']
         #param['fiscal_position'] = 1
-	param['pricelist_id'] = 1
-	
+        param['pricelist_id'] = 1
+        param['payment_term_id'] = 5
+
 	# TO DO : Get Fiscal position from partner : self.env['res.partner'].browse(param['partner_id']).property_account_position_id
 	#fiscal_pos = self.env['account.fiscal.position'].browse(param['fiscal_position']) or False
 
@@ -108,16 +111,30 @@ class SaleOrder(models.Model):
 
             param['order_line'].append(line_params)
 
+	product = self.env['product.product'].search([('id', '=', 5)], limit=1)
+	line_shipping_params = (0, _, {
+		'name'			: product.name,
+     		'product_id'            : product.id,
+		'product_uom'           : product.uom_id.id,
+		'product_uos_qty'       : 1,
+                'product_uom_qty'       : 1,
+                'price_unit'            : data['shipping_total'],
+                'type'                  : 'make_to_stock',
+	})
+
+	param['order_line'].append(line_shipping_params)
+
         return param
 
     @api.model
     def resolve_customer_info(self, billing_address, shipping_address, email):
         partner_db = self.env['res.partner']
         country_db = self.env['res.country']
-
+        _logger.debug("Resolving Customer")
         # Check if this partner already exists
         billing_partner = partner_db.search([('email', '=', email)], limit=1)
         if billing_partner:
+            _logger.debug("BP Found")
             # Check if the shipment address exists
             country_id = self.env['res.country'].search([('code', '=', shipping_address['country'])])
             shipping_partner = False
@@ -131,6 +148,7 @@ class SaleOrder(models.Model):
 
         # If the billing address doesn't exist yet, create it
         if not billing_partner:
+            _logger.debug("No Partner Found, Searching Country")
             country_id = country_db.search([('code', '=', billing_address['country'])])
             vals = {
                 'active'     : True,
@@ -138,13 +156,15 @@ class SaleOrder(models.Model):
                 'is_company' : False, # to be upgraded : if VAT > True
                 'city'       : billing_address['city'],
                 'zip'        : billing_address['zipcode'],
-                'street'     : billing_address['street'] + billing_address['house_number'] + billing_address['house_number_alt'],
                 'country_id' : country_id[0].id,
+                'street'     : billing_address['street'] + ' ' + billing_address['house_number'] + ' ' + billing_address['house_number_alt'],
                 'email'      : email,
-                'name'       : billing_address['firstname'] + billing_address['lastname']
+                'phone'      : billing_address['telephone'],
+                'name'       : billing_address['firstname'] + ' ' + billing_address['lastname']
             }
-
+            _logger.debug("Creating partner with vals")
             billing_partner = partner_db.create(vals)
+            _logger.debug("Setting Billing Partner")
             billing_partner = partner_db.browse(billing_partner)
 
         # If the shipping address doesn't exist yet, create it
@@ -153,14 +173,15 @@ class SaleOrder(models.Model):
                 'active'     : True,
                 'customer'   : True,
                 'is_company' : False,
-		'parent_id'  : billing_partner.id,
-		'type'	     : 'delivery',
+                'parent_id'  : billing_partner.id,
+                'type'	     : 'delivery',
                 'city'       : shipping_address['city'],
                 'zip'        : shipping_address['zipcode'],
-                'street'     : shipping_address['street'] + shipping_address['house_number'] + shipping_address['house_number_alt'],
+                'street'     : shipping_address['street'] + ' ' + shipping_address['house_number'] + ' ' + shipping_address['house_number_alt'],
                 'country_id' : country_id[0].id,
                 'email'      : email,
-                'name'       : shipping_address['firstname'] + shipping_address['lastname']
+                'phone'      : shipping_address['telephone'],
+                'name'       : shipping_address['firstname'] + ' ' + shipping_address['lastname']
         }
 
         shipping_partner = partner_db.create(vals)
