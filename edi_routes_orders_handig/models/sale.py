@@ -58,11 +58,21 @@ class SaleOrder(models.Model):
         shipping_address = data['shipping_address']
         invoice_address = data['billing_address']
 
-	billing_partner, shipping_partner = self.resolve_customer_info(data['billing_address'], data['shipping_address'], data['email'])
+	if data['user']['email'] is None:
+		_logger.debug("No User Created, fetching email from root: %s", data['email'])
+		billing_partner, shipping_partner = self.resolve_customer_info(data['billing_address'], data['shipping_address'], data['email'],param)
+	else:
+                _logger.debug("User Created, fetchin email from user: %s", data['user']['email'])
+		billing_partner, shipping_partner = self.resolve_customer_info(data['billing_address'], data['shipping_address'], data['user']['email'],param)
+        
+	_logger.debug("param after customer resolve: %s",param)
+        _logger.debug("billing_partner after customer resolve: %s",billing_partner)
 
 	param['partner_id'] = billing_partner.id
 	param['partner_invoice_id'] = billing_partner.id
-	param['partner_shipping_id'] = shipping_partner.id.id
+	param['partner_shipping_id'] = shipping_partner.id
+
+	_logger.debug("All partners found in param: %s", param)
 
         return param
 
@@ -72,11 +82,11 @@ class SaleOrder(models.Model):
 
 	_logger.debug("Building Party Header")
         param = self._build_party_header_handig(param, data)
-	_logger.debug("Building Sale Order")
+	_logger.debug("Building Sale Order with data :%d", data)
         param = self.create_sale_order(param, data)
 
         # Actually create the sale order
-        _logger.debug("Creating Sale Order")
+        _logger.debug("Creating Sales Order with params: %s", param)
 	sid = self.env['sale.order'].create(param)
         so = self.env['sale.order'].browse(sid.id)
 	return so.name
@@ -87,7 +97,7 @@ class SaleOrder(models.Model):
         param['origin'] = data['number']
         param['picking_policy'] = 'one'
         param['client_order_ref'] = data['number']
-        #param['fiscal_position'] = 1
+        param['fiscal_position'] = 1
         param['pricelist_id'] = 1
         param['payment_term_id'] = 5
 
@@ -107,6 +117,7 @@ class SaleOrder(models.Model):
                 'product_uom_qty'       : line['quantity'],
                 'price_unit'            : line['price'],
                 'type'                  : 'make_to_stock',
+		'tax_id'		: [3],
             })
 
             param['order_line'].append(line_params)
@@ -120,35 +131,44 @@ class SaleOrder(models.Model):
                 'product_uom_qty'       : 1,
                 'price_unit'            : data['shipping_total'],
                 'type'                  : 'make_to_stock',
+		'tax_id'		: [3],
 	})
 
 	param['order_line'].append(line_shipping_params)
-
-        return param
+        
+        
+	return param
 
     @api.model
-    def resolve_customer_info(self, billing_address, shipping_address, email):
+    def resolve_customer_info(self, billing_address, shipping_address, email, param):
         partner_db = self.env['res.partner']
         country_db = self.env['res.country']
-        _logger.debug("Resolving Customer")
+        _logger.debug("Resolving Customer with email %s", email)
         # Check if this partner already exists
         billing_partner = partner_db.search([('email', '=', email)], limit=1)
         if billing_partner:
-            _logger.debug("BP Found")
+            _logger.debug("BP Found : %s", billing_partner)
             # Check if the shipment address exists
-            country_id = self.env['res.country'].search([('code', '=', shipping_address['country'])])
-            shipping_partner = False
+            country_id = self.env['res.country'].search([('code', '=', shipping_address['country'])]).id
+            _logger.debug("country_id %s", country_id)
+	    shipping_partner = False
             partners = partner_db.search([('parent_id', '=', billing_partner.id)])
+	    _logger.debug("partners %s", partners)
+            _logger.debug("shipping_address: %s", shipping_address)
             for partner in partners:
-                if self.partner_exists(partner, param, country_id):
+                if self.partner_exists(partner, param, country_id, shipping_address):
                     shipping_partner = partner
+		    _logger.debug("shipping_partner %s", shipping_partner)
 
             if shipping_partner:
+		_logger.debug("SP Found")
                 return billing_partner, shipping_partner
-
+            
+            
+	import pdb; pdb.set_trace()
         # If the billing address doesn't exist yet, create it
         if not billing_partner:
-            _logger.debug("No Partner Found, Searching Country")
+            _logger.debug("No Billing Partner Found, Searching Country")
             country_id = country_db.search([('code', '=', billing_address['country'])])
             vals = {
                 'active'     : True,
@@ -157,17 +177,21 @@ class SaleOrder(models.Model):
                 'city'       : billing_address['city'],
                 'zip'        : billing_address['zipcode'],
                 'country_id' : country_id[0].id,
-                'street'     : billing_address['street'] + ' ' + billing_address['house_number'] + ' ' + billing_address['house_number_alt'],
                 'email'      : email,
                 'phone'      : billing_address['telephone'],
                 'name'       : billing_address['firstname'] + ' ' + billing_address['lastname']
             }
-            _logger.debug("Creating partner with vals")
+            if billing_address['house_number_alt'] is None:
+                    _logger.debug("No house number alt, not filling data")
+                    vals['street'] = billing_address['street'] + ' ' + billing_address['house_number']
+	    else:
+                    _logger.debug("House number alt found, filling data")
+                    vals['street'] = billing_address['street'] + ' ' + billing_address['house_number'] + ' ' + billing_address['house_number_alt'],
+            _logger.debug("Creating partner with vals: %s", vals)
             billing_partner = partner_db.create(vals)
-            _logger.debug("Setting Billing Partner")
-            billing_partner = partner_db.browse(billing_partner)
 
         # If the shipping address doesn't exist yet, create it
+	_logger.debug("Creating Shipping Partner")
         country_id = country_db.search([('code', '=', shipping_address['country'])])
         vals = {
                 'active'     : True,
@@ -177,22 +201,27 @@ class SaleOrder(models.Model):
                 'type'	     : 'delivery',
                 'city'       : shipping_address['city'],
                 'zip'        : shipping_address['zipcode'],
-                'street'     : shipping_address['street'] + ' ' + shipping_address['house_number'] + ' ' + shipping_address['house_number_alt'],
                 'country_id' : country_id[0].id,
                 'email'      : email,
                 'phone'      : shipping_address['telephone'],
                 'name'       : shipping_address['firstname'] + ' ' + shipping_address['lastname']
         }
 
+        if shipping_address['house_number_alt'] is None:
+                _logger.debug("No house number alt, not filling data")
+                vals['street'] = shipping_address['street'] + ' ' + shipping_address['house_number']
+        else:
+                _logger.debug("House number alt found, filling data")
+                vals['street'] = shipping_address['street'] + ' ' + shipping_address['house_number'] + ' ' + billing_address['house_number_alt'],
+        _logger.debug("Creating partner with vals: %s", vals)
+
         shipping_partner = partner_db.create(vals)
-        shipping_partner = partner_db.browse(shipping_partner)
         return billing_partner, shipping_partner
 
     @api.model
-    def partner_exists(self, partner, params, country_id):
-        return partner.name == shipping_address['full_name'] and \
+    def partner_exists(self, partner, params, country_id, shipping_address):
+        return partner.name == shipping_address['firstname'] + ' ' + shipping_address['lastname'] and \
                partner.city == shipping_address['city'] and \
                partner.zip == shipping_address['zipcode'] and \
-               partner.street == shipping_address['address1'] and \
-               partner.street2 == shipping_address['address2'] and \
-               partner.country_id.id == country_id.id
+               partner.street == shipping_address['street'] + ' ' + shipping_address['house_number'] and \
+               partner.country_id.id == country_id
