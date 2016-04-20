@@ -117,7 +117,7 @@ class SaleOrder(models.Model):
                 'product_uom_qty'       : line['quantity'],
                 'price_unit'            : line['price'],
                 'type'                  : 'make_to_stock',
-		'tax_id'		: [3],
+                'tax_id'                : [(6, 0, [3])],
             })
 
             param['order_line'].append(line_params)
@@ -131,7 +131,7 @@ class SaleOrder(models.Model):
                 'product_uom_qty'       : 1,
                 'price_unit'            : data['shipping_total'],
                 'type'                  : 'make_to_stock',
-		'tax_id'		: [3],
+                'tax_id'                : [(6, 0, [3])],
 	})
 
 	param['order_line'].append(line_shipping_params)
@@ -185,7 +185,7 @@ class SaleOrder(models.Model):
                     vals['street'] = billing_address['street'] + ' ' + billing_address['house_number']
 	    else:
                     _logger.debug("House number alt found, filling data")
-                    vals['street'] = billing_address['street'] + ' ' + billing_address['house_number'] + ' ' + billing_address['house_number_alt'],
+                    vals['street'] = billing_address['street'] + ' ' + billing_address['house_number'] + ' ' + billing_address['house_number_alt']
             _logger.debug("Creating partner with vals: %s", vals)
             billing_partner = partner_db.create(vals)
 
