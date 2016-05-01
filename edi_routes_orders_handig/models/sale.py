@@ -32,6 +32,9 @@ class SaleOrder(models.Model):
         if not 'number' in data:
             raise EdiValidationError('Could not find field: number.')
 
+        if self.env['sale.order'].search([('client_order_ref','=',data["number"])]):
+            raise EdiValidationError('Sale order exists with the same number.')
+
         # If we get all the way to here, the document is valid
         return True
 
@@ -109,7 +112,7 @@ class SaleOrder(models.Model):
         param['order_line'] = []
         for line in data['line_items']:
 	    product = self.env['product.product'].search([('barcode', '=', line['product']['sku'])], limit=1)
-            line_params = (0, _, {
+            line_params = (0, False, {
                 'name' 			: product.name,
                 'product_id'            : product.id,
                 'product_uom'           : product.uom_id.id,
@@ -123,7 +126,7 @@ class SaleOrder(models.Model):
             param['order_line'].append(line_params)
 
 	product = self.env['product.product'].search([('id', '=', 5)], limit=1)
-	line_shipping_params = (0, _, {
+	line_shipping_params = (0, False, {
 		'name'			: product.name,
      		'product_id'            : product.id,
 		'product_uom'           : product.uom_id.id,
