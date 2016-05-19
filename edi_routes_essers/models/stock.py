@@ -36,7 +36,7 @@ class stock_picking(models.Model):
         valid_pickings = self.filtered(self.valid_for_edi_export_essers)
         invalid_pickings = [p for p in self if p not in valid_pickings]
         if invalid_pickings:
-            raise except_orm(_('Invalid pickings in selection!'), _('The following pickings are invalid, please remove from selection. %s') % (map(lambda record: record.name, invalid_pickings)))
+            raise except_orm(_('Invalid pickings in selection!'), _('The following pickings are invalid for one of the following reasons : ( picking status is not "available", no ExpertM number found on partner, no order reference found on SO ) , please remove from selection. %s') % (map(lambda record: record.name, invalid_pickings)))
 
         for picking in valid_pickings:
             content = picking.edi_export_essers(picking, None)
