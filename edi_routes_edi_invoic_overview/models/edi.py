@@ -1,10 +1,12 @@
 from datetime import datetime
 import json
+import logging
 
 from openerp import models, api, _
 from openerp.tools.misc import DEFAULT_SERVER_DATE_FORMAT
 from openerp.exceptions import except_orm
 
+_logger = logging.getLogger(__name__)
 
 class EdiToolsEdiDocumentOutgoing(models.Model):
     _inherit = "edi.tools.edi.document.outgoing"
@@ -130,6 +132,7 @@ class EdiToolsEdiDocumentOutgoing(models.Model):
 
     @api.model
     def run_send_edi_export_edi_invoic_overview(self):
+        _logger.debug("Sending EDI invoice overview")
         flow = self.env['edi.tools.edi.flow'].search([('model', '=', 'edi.tools.edi.document.outgoing'), ('name', '=', 'Invoice Overview(out)')], limit=1)
         partnerflows = self.env['edi.tools.edi.partnerflow'].search([('flow_id', '=', flow.id), ('partnerflow_active', '=', True)])
         creation_date_start = datetime.strftime(datetime.utcnow(), '%Y-%m-%d 00:00:00')
@@ -140,8 +143,10 @@ class EdiToolsEdiDocumentOutgoing(models.Model):
                 ('flow_id', '=', document_flow.id),
                 ('create_date', '>=', creation_date_start)
             ])
+            _logger.debug("%s Matching documents found.", len(documents))
             if len(documents) == 0:
-                next
+                _logger.debug("No documents found. Aborting")
+                continue
             content = documents.edi_export_edi_invoic_overview()
             document_name = "%s-%s" % (partnerflow.partnerflow_id.name, datetime.strftime(datetime.utcnow(), DEFAULT_SERVER_DATE_FORMAT))
             self.env['edi.tools.edi.document.outgoing'].create_from_content(document_name, content, partnerflow.partnerflow_id.id, 'edi.tools.edi.document.outgoing', 'send_edi_export_edi_invoic_overview', type='STRING')
