@@ -246,6 +246,16 @@ class sale_order(osv.Model, EDIMixin):
         if 'deldtm' not in data:
             requested_date_key = 'latedeldtm'
         param['requested_date'] = data[requested_date_key][:4] + '-' + data[requested_date_key][4:6] + '-' + data[requested_date_key][6:8]
+        if param['partner_shipping_id'] == 526:
+            param['requested_date'] = param['requested_date'] + ' 06:00:00'
+        if param['partner_shipping_id'] == 560:
+            param['requested_date'] = param['requested_date'] + ' 13:30:00'
+        if param['partner_shipping_id'] == 562:
+            param['requested_date'] = param['requested_date'] + ' 07:30:00'
+        if param['partner_shipping_id'] == 561:
+            param['requested_date'] = param['requested_date'] + ' 08:30:00'
+        if param['partner_shipping_id'] == 570:
+            param['requested_date'] = param['requested_date'] + ' 10:00:00'
         param['message_ids'] = False
         param['note'] = False
         param['project_id'] = False
