@@ -87,7 +87,7 @@ class edi_tools_edi_document(osv.Model):
         'location' : fields.char('File location', size=256, required=True, readonly=False),
         'partner_id': fields.many2one('res.partner', 'Partner', readonly=True, required=True),
         'flow_id': fields.many2one('edi.tools.edi.flow', 'EDI Flow', readonly=True, required=True),
-        'message': fields.function(_function_message_get, type='char', string='Message'),
+        'message': fields.function(_function_message_get, type='char', string='Message', store=True),
         'reference' : fields.char('Reference', size=64, required=False, readonly=True),
         'state': fields.selection([('new', 'New'),
                                    ('ready', 'Ready'),
