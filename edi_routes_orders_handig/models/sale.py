@@ -122,10 +122,23 @@ class SaleOrder(models.Model):
                 'type'                  : 'make_to_stock',
                 'tax_id'                : [(6, 0, [3])],
             })
-
             param['order_line'].append(line_params)
-
-	product = self.env['product.product'].search([('id', '=', 5)], limit=1)
+        
+        if data['promotion_total'] != "0":
+            product = self.env['product.product'].search([('id', '=', 12302)], limit=1)
+	    line_promotion_params = (0, False, {
+	    	'name'			: data['promotion_code'],
+     		'product_id'            : 12302,
+		'product_uom'           : product.uom_id.id,
+		'product_uos_qty'       : 1,
+                'product_uom_qty'       : 1,
+                'price_unit'            : (float(-1)*(float(data['promotion_total']))),
+                'type'                  : 'make_to_stock',
+                'tax_id'                : [(6, 0, [3])],
+	    })
+	    param['order_line'].append(line_promotion_params)
+	
+        product = self.env['product.product'].search([('id', '=', 5)], limit=1)
 	line_shipping_params = (0, False, {
 		'name'			: product.name,
      		'product_id'            : product.id,
@@ -136,7 +149,6 @@ class SaleOrder(models.Model):
                 'type'                  : 'make_to_stock',
                 'tax_id'                : [(6, 0, [3])],
 	})
-
 	param['order_line'].append(line_shipping_params)
         
         
@@ -214,7 +226,7 @@ class SaleOrder(models.Model):
                 vals['street'] = shipping_address['street'] + ' ' + shipping_address['house_number']
         else:
                 _logger.debug("House number alt found, filling data")
-                vals['street'] = shipping_address['street'] + ' ' + shipping_address['house_number'] + ' ' + billing_address['house_number_alt'],
+                vals['street'] = shipping_address['street'] + ' ' + shipping_address['house_number'] + ' ' + billing_address['house_number_alt']
         _logger.debug("Creating partner with vals: %s", vals)
 
         shipping_partner = partner_db.create(vals)
