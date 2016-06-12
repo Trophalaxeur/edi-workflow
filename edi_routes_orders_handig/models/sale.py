@@ -35,6 +35,15 @@ class SaleOrder(models.Model):
         if self.env['sale.order'].search([('client_order_ref','=',data["number"])]):
             raise EdiValidationError('Sale order exists with the same number.')
 
+        unknown_eans = []
+        for line in data['line_items']:
+	    product = self.env['product.product'].search([('barcode', '=', line['product']['sku'])], limit=1)
+            if not product:
+              unknown_eans.append(line['product']['sku'])
+            
+        if unknown_eans:
+            raise EdiValidationError('Product(s) with ean %s unknown.' % ', '.join(unknown_eans)) 
+
         # If we get all the way to here, the document is valid
         return True
 
@@ -57,16 +66,20 @@ class SaleOrder(models.Model):
     @api.model
     def _build_party_header_handig(self, param, data):
 	partner_db = self.env['res.partner']
+        _logger.debug("partnerdb set") 
         customer_address = data['billing_address']
+        _logger.debug("var customer_address set")
         shipping_address = data['shipping_address']
+        _logger.debug("var shipping_address set")
         invoice_address = data['billing_address']
-
-	if data['user']['email'] is None:
-		_logger.debug("No User Created, fetching email from root: %s", data['email'])
-		billing_partner, shipping_partner = self.resolve_customer_info(data['billing_address'], data['shipping_address'], data['email'],param)
+        _logger.debug("var invoice_address set")
+           
+        if data['user'] is None:
+           _logger.debug("No User Created, fetching email from root: %s", data['email'])
+           billing_partner, shipping_partner = self.resolve_customer_info(data['billing_address'], data['shipping_address'], data['email'],param)
 	else:
-                _logger.debug("User Created, fetchin email from user: %s", data['user']['email'])
-		billing_partner, shipping_partner = self.resolve_customer_info(data['billing_address'], data['shipping_address'], data['user']['email'],param)
+           _logger.debug("User Created, fetchin email from user: %s", data['user']['email'])
+           billing_partner, shipping_partner = self.resolve_customer_info(data['billing_address'], data['shipping_address'], data['user']['email'],param)
         
 	_logger.debug("param after customer resolve: %s",param)
         _logger.debug("billing_partner after customer resolve: %s",billing_partner)
@@ -226,7 +239,7 @@ class SaleOrder(models.Model):
                 vals['street'] = shipping_address['street'] + ' ' + shipping_address['house_number']
         else:
                 _logger.debug("House number alt found, filling data")
-                vals['street'] = shipping_address['street'] + ' ' + shipping_address['house_number'] + ' ' + billing_address['house_number_alt']
+                vals['street'] = shipping_address['street'] + ' ' + shipping_address['house_number'] + ' ' + shipping_address['house_number_alt']
         _logger.debug("Creating partner with vals: %s", vals)
 
         shipping_partner = partner_db.create(vals)
