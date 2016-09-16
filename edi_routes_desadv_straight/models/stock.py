@@ -53,6 +53,8 @@ class stock_picking(osv.Model, EDIMixin):
     def valid_for_edi_export_desadv_straight(self, record):
         if record.state != 'done':
             return False
+        if len(record.order_reference) > 17:
+            return False
         return True
 
     @api.multi
