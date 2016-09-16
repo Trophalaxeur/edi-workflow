@@ -20,15 +20,23 @@ class stock_picking(models.Model):
 
     @api.model
     def valid_for_edi_export_essers(self, record):
-        if record.state != 'assigned':
+        if record.state not in ('partially_available','assigned'):
+            _logger.info("record.state not partially_available or assigned, error")
             return False
         if not record.partner_id.expertm_reference:
+            _logger.info("partner_id.expertm_reference empty")
             return False
         if record.origin:
             orderref = record.origin.partition(':')
             order = self.env['sale.order'].search([('name', '=', orderref[0])])
             if not order.partner_id.expertm_reference:
+                _logger.info("order.partner_id.expertm_reference empty")
                 return False
+        for line in record.move_lines:
+            if line.reserved_availability > line.product_qty:
+                _logger.info("reserved_availability > line.product_qty")
+                return False
+        _logger.info("valid for export")
         return True
 
     @api.multi
@@ -36,7 +44,7 @@ class stock_picking(models.Model):
         valid_pickings = self.filtered(self.valid_for_edi_export_essers)
         invalid_pickings = [p for p in self if p not in valid_pickings]
         if invalid_pickings:
-            raise except_orm(_('Invalid pickings in selection!'), _('The following pickings are invalid for one of the following reasons : ( picking status is not "available", no ExpertM number found on partner, no order reference found on SO ) , please remove from selection. %s') % (map(lambda record: record.name, invalid_pickings)))
+            raise except_orm(_('Invalid pickings in selection!'), _('The following pickings are invalid, please remove from selection. %s') % (map(lambda record: record.name, invalid_pickings)))
 
         for picking in valid_pickings:
             content = picking.edi_export_essers(picking, None)
@@ -84,20 +92,27 @@ class stock_picking(models.Model):
         i = 0
         for line in delivery.move_lines:
 
-            if line.state != 'assigned':
+            i = i + 100
+            
+            # Write this EDI sequence to the delivery for referencing the response
+            line.write({'edi_sequence': "%06d" % (i,)})
+            
+            if line.reserved_availability == 0:
+                _logger.info("reserved == 0, skipping line")
                 continue
 
-            i = i + 100
             temp = ET.SubElement(header, "E1BPOBDLVITEM")
             temp.set('SEGMENT', '1')
             ET.SubElement(temp, "DELIV_NUMB").text = delivery.name.replace('/', '_')
             ET.SubElement(temp, "ITM_NUMBER").text = "%06d" % (i,)
-            ET.SubElement(temp, "MATERIAL").text = line.product_id.name
-            ET.SubElement(temp, "DLV_QTY_STOCK").text = str(int(line.product_qty))
+            ET.SubElement(temp, "MATERIAL").text = line.product_id.name.upper()
+            ET.SubElement(temp, "DLV_QTY_STOCK").text = str(int(line.reserved_availability))
 
             if not line.product_id.bom_ids:
+                _logger.info("no bom product")
                 ET.SubElement(temp, "BOMEXPL_NO").text = '0'
-            else:
+            elif line.product_id.bom_ids[0].picking_type == 'pickpack':
+                _logger.info("bom product, type pickpack, sending detail")
                 ET.SubElement(temp, "BOMEXPL_NO").text = '5'
                 j = i
                 for bom in line.product_id.bom_ids[0].bom_line_ids:
@@ -106,8 +121,8 @@ class stock_picking(models.Model):
                     temp.set('SEGMENT', '1')
                     ET.SubElement(temp, "DELIV_NUMB").text = delivery.name.replace('/', '_')
                     ET.SubElement(temp, "ITM_NUMBER").text = "%06d" % (j,)
-                    ET.SubElement(temp, "MATERIAL").text = bom.product_id.name
-                    ET.SubElement(temp, "DLV_QTY_STOCK").text = str(int(line.product_qty * bom.product_qty))
+                    ET.SubElement(temp, "MATERIAL").text = bom.product_id.name.upper()
+                    ET.SubElement(temp, "DLV_QTY_STOCK").text = str(int(line.reserved_availability * bom.product_qty))
                     ET.SubElement(temp, "BOMEXPL_NO").text = '6'
 
                     temp = ET.SubElement(header, "E1BPOBDLVITEMORG")
@@ -115,6 +130,9 @@ class stock_picking(models.Model):
                     ET.SubElement(temp, "DELIV_NUMB").text = delivery.name.replace('/', '_')
                     ET.SubElement(temp, "ITM_NUMBER").text = "%06d" % (j,)
                     ET.SubElement(temp, "STGE_LOC").text = '0'
+            else:
+                _logger.info("bom producti, manufacture, no details")
+                ET.SubElement(temp, "BOMEXPL_NO").text = '0'
 
             temp = ET.SubElement(header, "E1BPOBDLVITEMORG")
             temp.set('SEGMENT', '1')
@@ -127,8 +145,6 @@ class stock_picking(models.Model):
 
             line._build_line_customerinfo(header, i)
 
-            # Write this EDI sequence to the delivery for referencing the response
-            line.write({'edi_sequence': "%06d" % (i,)})
 
         return root
 
@@ -195,7 +211,7 @@ class stock_picking(models.Model):
 
     @api.model
     def edi_import_essers_validator(self, document_ids):
-        _logger.debug("Validating essers document")
+        _logger.debug("Validating Essers document")
 
         # Read the EDI Document
         edi_db = self.env['edi.tools.edi.document.incoming']
@@ -216,6 +232,9 @@ class stock_picking(models.Model):
 
         if delivery.state == 'done':
             raise EdiValidationError("Delivery already transfered.")
+
+        if delivery.state == 'cancel':
+            raise EdiValidationError("Delivery was manually cancelled.")
 
         lines_without_sequence = [ml for ml in delivery.move_lines if not ml.edi_sequence]
         if lines_without_sequence:
@@ -242,7 +261,7 @@ class stock_picking(models.Model):
             if not move_line:  # skip BOM explosion lines
                 continue
             move_line = move_line[0]
-            if move_line.product_id.name != edi_line['MATERIAL']:
+            if move_line.product_id.name.upper() != edi_line['MATERIAL'].upper():
                 raise EdiValidationError('Line mentioned with EDI sequence {!s} has a different material.'.format(edi_line['DELIV_ITEM']))
 
         _logger.debug("Essers document valid")
@@ -267,6 +286,7 @@ class stock_picking(models.Model):
             raise EdiIgnorePartnerError(msg)
 
         if not delivery.pack_operation_ids:
+            _logger.info("No pack_operation_ids, executing do_prepare_partial()")
             delivery.do_prepare_partial()
 
         # cast the line items to a list if there's only 1 item
@@ -279,7 +299,15 @@ class stock_picking(models.Model):
             if len(move_line.linked_move_operation_ids) == 0:
                 raise except_orm(_('No pack operation found!'), _('No pack operation was found for edi sequence %s in picking %s (%d)') % (edi_line['DELIV_ITEM'], delivery.name, delivery.id))
             pack_operation = move_line.linked_move_operation_ids[0].operation_id
-            pack_operation.with_context(no_recompute=True).write({'product_qty': edi_line['DLV_QTY_IMUNIT']})
+            if pack_operation.remaining_qty >= 0.0:
+                pack_operation.with_context(no_recompute=True).write({'product_qty': edi_line['DLV_QTY_IMUNIT']})
+                _logger.info("Replaced QTY with EDI DLV_QTY_IMUNIT")
+            elif pack_operation.remaining_qty*(-1) >= float(edi_line['DLV_QTY_IMUNIT']):
+                pack_operation.with_context(no_recompute=True).write({'product_qty': pack_operation.product_qty + float(edi_line['DLV_QTY_IMUNIT'])})
+                _logger.info("Added DLV_QTY_IMUNIT to QTY from available remaining QTY")
+            else:
+               raise except_orm(_('More delivered than requested!'), _('pack operation %s requested %s, but only %s remained.') % (pack_operation, edi_line['DELIV_ITEM'], pack_operation.remaining_qty))
+
             processed_ids.append(pack_operation.id)
 
         # delete the others pack operations, they will be included in the backorder

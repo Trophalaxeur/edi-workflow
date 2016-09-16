@@ -7,6 +7,7 @@
     'website': 'http://www.clubit.be',
     'depends': [
         'edi_tools',
+        'stock_bom_pickpack',
         'edi_stock_enable',
         'stock',
         'sale_stock_reference_chainer',
