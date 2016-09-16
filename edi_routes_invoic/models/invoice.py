@@ -117,7 +117,7 @@ class account_invoice(osv.Model, EDIMixin):
         edi_doc['DATUM'] = now.strftime("%Y%m%d")
         edi_doc['FACTUURDATUM'] = invoice.date_invoice.replace('-', '')
         edi_doc['VERVALDATUM'] = invoice.date_due.replace('-', '')
-        edi_doc['KLANTREFERENTIE'] = invoice.name
+        edi_doc['KLANTREFERENTIE'] = invoice.name[:17]
         edi_doc['FACTUURTOTAAL'] = invoice.amount_total
         edi_doc['FACTUURSUBTOTAAL'] = invoice.amount_untaxed
 
