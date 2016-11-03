@@ -1,11 +1,20 @@
 import datetime
 import json
+import pytz
+import logging
 
 from openerp.osv import osv
 from openerp.addons.edi import EDIMixin
 from openerp.tools.translate import _
 from openerp.addons.edi_tools.models.exceptions import EdiValidationError
 
+_logger = logging.getLogger(__name__)
+
+def is_dst():
+    _logger.debug("Calcuating TZ")
+    tz = pytz.timezone("Europe/Brussels")
+    now = pytz.utc.localize(datetime.datetime.utcnow())
+    return now.astimezone(tz).dst() != datetime.timedelta(0)
 
 class sale_order(osv.Model, EDIMixin):
     _name = "sale.order"
@@ -236,6 +245,12 @@ class sale_order(osv.Model, EDIMixin):
         so = self.browse(cr, uid, [sid], context)[0]
         return so.name
 
+    #def is_dst():
+    #    _logger.debug("Calcuating TZ")
+    #    tz = pytz.timezone("Europe/Brussels")
+    #    now = pytz.utc.localize(datetime.utcnow())
+    #    return now.astimezone(tz).dst() != timedelta(0)
+
     def create_sale_order(self, cr, uid, param, data, context):
         # Prepare the call to create a sale order
         param['origin'] = data['docnum']
@@ -254,16 +269,31 @@ class sale_order(osv.Model, EDIMixin):
         if 'deldtm' not in data:
             requested_date_key = 'latedeldtm'
         param['requested_date'] = data[requested_date_key][:4] + '-' + data[requested_date_key][4:6] + '-' + data[requested_date_key][6:8]
-        if param['partner_shipping_id'] == 526:
-            param['requested_date'] = param['requested_date'] + ' 06:00:00'
-        if param['partner_shipping_id'] == 560:
-            param['requested_date'] = param['requested_date'] + ' 13:30:00'
-        if param['partner_shipping_id'] == 562:
-            param['requested_date'] = param['requested_date'] + ' 07:30:00'
-        if param['partner_shipping_id'] == 561:
-            param['requested_date'] = param['requested_date'] + ' 08:30:00'
-        if param['partner_shipping_id'] == 570:
-            param['requested_date'] = param['requested_date'] + ' 10:00:00'
+        if is_dst():
+            _logger.debug("Delivery calculated in DST")
+            if param['partner_shipping_id'] == 526:
+                param['requested_date'] = param['requested_date'] + ' 06:00:00'
+            if param['partner_shipping_id'] == 560:
+                param['requested_date'] = param['requested_date'] + ' 13:30:00'
+            if param['partner_shipping_id'] == 562:
+                param['requested_date'] = param['requested_date'] + ' 07:30:00'
+            if param['partner_shipping_id'] == 561:
+                param['requested_date'] = param['requested_date'] + ' 08:30:00'
+            if param['partner_shipping_id'] == 570:
+                param['requested_date'] = param['requested_date'] + ' 10:00:00'
+        else:
+            _logger.debug("Delivery calculated without DST")
+            if param['partner_shipping_id'] == 526:
+                param['requested_date'] = param['requested_date'] + ' 07:00:00'
+            if param['partner_shipping_id'] == 560:
+                param['requested_date'] = param['requested_date'] + ' 14:30:00'
+            if param['partner_shipping_id'] == 562:
+                param['requested_date'] = param['requested_date'] + ' 08:30:00'
+            if param['partner_shipping_id'] == 561:
+                param['requested_date'] = param['requested_date'] + ' 09:30:00'
+            if param['partner_shipping_id'] == 570:
+                param['requested_date'] = param['requested_date'] + ' 11:00:00'
+
         param['message_ids'] = False
         param['note'] = False
         param['project_id'] = False
