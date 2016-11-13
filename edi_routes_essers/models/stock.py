@@ -17,6 +17,7 @@ class stock_picking(models.Model):
 
     crossdock_overrule = fields.Selection([('Y', 'Yes'), ('N', 'No')], copy=False)
     groupage_overrule = fields.Selection([('Y', 'Yes'), ('N', 'No')], copy=False)
+    number_of_pallets = fields.Integer(string='Number Of Pallets')
 
     @api.model
     def valid_for_edi_export_essers(self, record):
