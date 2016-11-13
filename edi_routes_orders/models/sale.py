@@ -1,11 +1,13 @@
 import datetime
 import json
+import logging
 
 from openerp.osv import osv
 from openerp.addons.edi import EDIMixin
 from openerp.tools.translate import _
 from openerp.addons.edi_tools.models.exceptions import EdiValidationError
 
+_logger = logging.getLogger(__name__)
 
 class sale_order(osv.Model, EDIMixin):
     _name = "sale.order"
@@ -92,8 +94,10 @@ class sale_order(osv.Model, EDIMixin):
                 raise EdiValidationError('Could not resolve product {!s}.'.format(line['gtin']))
 
         # Validate timing information
-        if not 'deldtm' in data or not 'latedeltm' in data:
-            raise EdiValidationError('Could not find field: deldtm or latedeltm.')
+        #if not 'deldtm' in data:
+        #    raise EdiValidationError('Could not find field: deldtm.')
+        #if not 'latedeltm' in data:
+        #    raise EdiValidationError('Could not find field: latedeltm.')
         if not 'docdtm' in data:
             raise EdiValidationError('Could not find field: docdtm.')
 
@@ -235,17 +239,54 @@ class sale_order(osv.Model, EDIMixin):
     def create_sale_order(self, cr, uid, param, data, context):
         # Prepare the call to create a sale order
         param['origin'] = data['docnum']
+        param['picking_policy'] = 'direct'
+        #if crossdock order:
+        if data['docsrt'] == "50E":
+           param['instruction_2'] = 'XDCK'
+        #if launch order:
+        if data['docsrt'] == "221":
+            param['instruction_2'] = 'RMORD'
+        _logger.debug('gogogo')
+        if 'ordertype' in data:
+            _logger.debug('ordertype detected')
+            #if Intake / Shop / Install
+            if data['ordertype'] == '77E':
+                param['instruction_2'] = param['instruction_2'] + ' 77E'
+            #if Comission
+            if data['ordertype'] == '83E':
+                param['instruction_2'] = param['instruction_2'] + ' 83E'
+                param['picking_policy'] = 'one'
+        #if Campaign
+        #if 'orderrefpd' in data:
+        #    param['origin'] = param['origin'] + ' CAMP' + data['orderrefpd']
         param['message_follower_ids'] = False
         param['categ_ids'] = False
-        param['picking_policy'] = 'one'
         param['order_policy'] = 'picking'
         param['carrier_id'] = False
         param['invoice_quantity'] = 'order'
         param['client_order_ref'] = data['docnum']
+
+        if 'orderrefct' in data:
+            param['instruction_1'] = 'CC ' + data['orderrefct']
+        if 'orderrefpd' in data:
+            param['instruction_1'] = 'OPECO ' + data['orderrefpd']
+        if 'orderrefcr' in data:
+            param['instruction_2'] = param['instruction_2'] + ' CR ' +data['orderrefcr']
+        
         requested_date_key = 'deldtm'
         if 'deldtm' not in data:
-            requested_date_key = 'latedeltm'
+            requested_date_key = 'latedeldtm'
         param['requested_date'] = data[requested_date_key][:4] + '-' + data[requested_date_key][4:6] + '-' + data[requested_date_key][6:8]
+        if param['partner_shipping_id'] == 526:
+            param['requested_date'] = param['requested_date'] + ' 06:00:00'
+        if param['partner_shipping_id'] == 560:
+            param['requested_date'] = param['requested_date'] + ' 13:30:00'
+        if param['partner_shipping_id'] == 562:
+            param['requested_date'] = param['requested_date'] + ' 07:30:00'
+        if param['partner_shipping_id'] == 561:
+            param['requested_date'] = param['requested_date'] + ' 08:30:00'
+        if param['partner_shipping_id'] == 570:
+            param['requested_date'] = param['requested_date'] + ' 10:00:00'  
         param['message_ids'] = False
         param['note'] = False
         param['project_id'] = False

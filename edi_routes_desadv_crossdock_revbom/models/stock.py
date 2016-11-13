@@ -25,7 +25,7 @@ DESADV = {
         'leverplandatum': '',  # stock.picking.out:min_date
         'despatchdtm': '',  # stock.picking.out:date_done
         'klantreferentie': '',  # stock.picking.out:order_reference
-        'incoterm': '', # stock.picking.out > incoterm > stock.incoterm.name
+        'incoterm': '', #stock.picking:incoterm
         'partys': {'party': []},  # partner details
         'cpss': {  # line items
             'cps': [],
@@ -36,43 +36,7 @@ DESADV = {
 
 class stock_picking(osv.Model, EDIMixin):
     _inherit = "stock.picking"
-
-    def _get_desadv_cps_segment(self):
-        cps = {
-            'pacs': {"pac": []},
-            'lines': {"line": []},
-        }
-        return cps
-
-    def _get_desadv_cps_pac_segment(self):
-        cps = {
-            'pacs': {"pac": []},
-        }
-        return cps
-
-    @api.model
-    def valid_for_edi_export_desadv_crossdock(self, record):
-        if record.state != 'done':
-            return False
-        return True
-
-    @api.multi
-    def send_edi_export_desadv_crossdock(self, partner_id):
-        valid_pickings = self.filtered(self.valid_for_edi_export_desadv_crossdock)
-        invalid_pickings = [p for p in self if p not in valid_pickings]
-        if invalid_pickings:
-            raise except_orm(_('Invalid pickings in selection!'), _('The following pickings are invalid, please remove from selection. %s') % (map(lambda record: record.name, invalid_pickings)))
-
-        if len(set([p.desadv_name for p in valid_pickings])) > 1:
-            raise except_orm(_('Invalid selection!'), _('The pickings you selected contain different desadv_name attribute values, please change the selection. %s') % (map(lambda record: (record.name, record.desadv_name), valid_pickings)))
-
-        content = valid_pickings.edi_export_desadv_crossdock(edi_struct=None)
-        result = self.env['edi.tools.edi.document.outgoing'].create_from_content(valid_pickings[0].desadv_name or picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_desadv_crossdock')
-        if not result:
-            raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
-
-        return True
-
+    
     @api.cr_uid_ids_context
     def edi_export_desadv_crossdock(self, cr, uid, ids, edi_struct=None, context=None):
         edi_doc = copy.deepcopy(dict(DESADV))
@@ -106,13 +70,10 @@ class stock_picking(osv.Model, EDIMixin):
         edi_doc['message']['despatchdtm'] = d_ship.strftime("%Y%m%d")
         edi_doc['message']['berichtdatum'] = now.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['klantreferentie'] = delivery.order_reference
-        edi_doc['message']['incoterm'] = delivery.incoterm
         edi_doc['message']['orderdatum'] = d_order.strftime("%Y%m%d")
-
         if company:
             partner = partner_db.browse(cr, uid, company.partner_id.id, context)
             if partner and partner.ref:
-                _logger.debug("partner SU: %s", partner)
                 partner_doc = copy.deepcopy(dict(DESADV_PARTY))
                 partner_doc['qual'] = 'SU'
                 partner_doc['gln'] = partner.ref
@@ -123,10 +84,17 @@ class stock_picking(osv.Model, EDIMixin):
                 edi_doc['message']['partys']['party'].append(partner_doc)
 
         partner = partner_db.browse(cr, uid, delivery.sale_partner_id.id, context)
-        _logger.debug("partner: %s", partner)
-        _logger.debug("partner.ref: %s", partner.ref)
-        _logger.debug("partner.parent_id: %s", partner.parent_id)
-        _logger.debug("partner id: %s", partner.id)
+        if partner and partner.ref and (partner.parent_id.id == 3451 or partner.id == 3451):
+            _logger.debug("GAMMA!")
+            partner_doc = copy.deepcopy(dict(DESADV_PARTY))
+            partner_doc['qual'] = 'BY'
+            partner_doc['gln'] = partner.ref
+            edi_doc['message']['partys']['party'].append(partner_doc)
+            # if instruction 2 == starts with XDCK > UC == sale_partner_id
+            partner_doc = copy.deepcopy(dict(DESADV_PARTY))
+            partner_doc['qual'] = 'UC'
+            partner_doc['gln'] = partner.ref
+            edi_doc['message']['partys']['party'].append(partner_doc)
 
         partner = partner_db.browse(cr, uid, delivery.partner_id.id, context)
         if partner and partner.ref:
@@ -134,6 +102,9 @@ class stock_picking(osv.Model, EDIMixin):
             partner_doc['qual'] = 'DP'
             partner_doc['gln'] = partner.ref
             edi_doc['message']['partys']['party'].append(partner_doc)
+  
+        if delivery.incoterm.id == 1:
+            edi_doc['message']['incoterm'] = "4"
 
         # Get trackings from all delivery lines without duplicates
         trackings = []
@@ -142,7 +113,7 @@ class stock_picking(osv.Model, EDIMixin):
                 if operation.result_package_id:
                     trackings.append(operation.result_package_id)
                 else:
-                    raise osv.except_osv(_('Warning!'), _("There is a line without SSCC number (pack) {!s}").format(line))
+                    raise osv.except_osv(_('Warning!'), _("There is a line without SSCC number (pack) {!s}").format(operation))
         trackings = set(trackings)  # remove duplicates
 
         def find_root(element):
@@ -188,18 +159,35 @@ class stock_picking(osv.Model, EDIMixin):
                 sorted_history_ids = sorted(quant.history_ids, key=lambda move: move.date, reverse=True)
                 order_origin = sorted_history_ids[0].picking_id[0].origin
                 so_ids = order_db.search(cr, uid, [('name', '=', order_origin)]) #was origin, nog available on quant
+
                 if not so_ids:
                     raise osv.except_orm(_('Error!'), _("No sales order found for origin \"%s\" via quant (%d)" % (order_origin, quant.id)))
                 order = order_db.browse(cr, uid, so_ids, context)
                 dtm = datetime.datetime.strptime(order.date_order, "%Y-%m-%d %H:%M:%S")
-                line_segment["num"] = line_counter
-                line_segment["gtin"] = product.ean13
-                line_segment["delqua"] = int(quant.qty)
-                line_segment["ucgln"] = order.partner_id.ref
-                line_segment["ucorder"] = order.origin
-                line_segment["ucorderdate"] = dtm.strftime("%Y%m%d")
-                cps_segment["lines"]["line"].append(line_segment)
-                line_counter += 1
+
+                if product.bom_ids and order.order_bomified:
+                    _logger.info("bomified order with bom product, appending bom components to EDI doc")
+                    for bom in product.bom_ids[0].bom_line_ids:
+                        bomproduct = product_db.browse(cr, uid, bom.product_id.id, context)
+                        line_segment = {}
+                        line_segment["num"] = line_counter
+                        line_segment["gtin"] = bomproduct.ean13
+                        line_segment["delqua"] = int(quant.qty)*int(bom.product_qty)
+                        line_segment["ucgln"] = order.partner_id.ref
+                        line_segment["ucorder"] = order.origin
+                        line_segment["ucorderdate"] = dtm.strftime("%Y%m%d")
+                        cps_segment["lines"]["line"].append(line_segment)
+                        line_counter += 1
+                else:
+                    _logger.info("no bom product or no bomified order, appending product to EDI doc")
+                    line_segment["num"] = line_counter
+                    line_segment["gtin"] = product.ean13
+                    line_segment["delqua"] = int(quant.qty)
+                    line_segment["ucgln"] = order.partner_id.ref
+                    line_segment["ucorder"] = order.origin
+                    line_segment["ucorderdate"] = dtm.strftime("%Y%m%d")
+                    cps_segment["lines"]["line"].append(line_segment)
+                    line_counter += 1
 
             if not cps_segment["lines"]["line"]:
                 cps_segment.pop("lines")
@@ -247,9 +235,5 @@ class stock_picking(osv.Model, EDIMixin):
             "qua": int(number_of_pallets),
             "iso": "pallet"
         })
-
-        #for delivery in deliveries:
-        #    delivery.number_of_packages = int(cps_counter)
-        #    delivery.number_of_pallets = int(number_of_pallets)
-
+        
         return edi_doc

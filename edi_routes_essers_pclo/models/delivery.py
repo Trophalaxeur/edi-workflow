@@ -35,9 +35,9 @@ class stock_picking(osv.Model):
             if not delivery:
                 raise EdiValidationError("Delivery %s doesn't exist" % (delivery_number.replace('_', '/')))
 
-            moves_not_assigned = delivery.move_lines.filtered(lambda ml: ml.state != 'assigned')
-            if moves_not_assigned:
-                raise EdiValidationError("Move lines present in delivery %s which don't have status assigned" % (delivery.name))
+            #moves_not_assigned = delivery.move_lines.filtered(lambda ml: ml.state != 'assigned')
+            #if moves_not_assigned:
+            #    raise EdiValidationError("Move lines present in delivery %s which don't have status assigned" % (delivery.name))
 
             no_matching_move_line_for_edi_sequence = []
             for row in rows:
@@ -47,7 +47,7 @@ class stock_picking(osv.Model):
 
             if no_matching_move_line_for_edi_sequence:
                 raise EdiValidationError("No move lines are found for following edi_sequences in delivery %s.<br/>%s" % (delivery.name, "<br/>".join(no_matching_move_line_for_edi_sequence)))
-
+        _logger.info('pclo validator: no errors') 
         return True
 
     @api.cr_uid_context
@@ -73,6 +73,8 @@ class stock_picking(osv.Model):
             header = content[1]  # get the header on line 2
             body = content[4:]  # skip line 3 and 4 and get the remaining content
             content = [header] + body
+
+        _logger.info('cleanup_pclo_file success')
         return content
 
     def edi_import_essers_pclo(self, cr, uid, pclofile, context=None):
@@ -172,12 +174,14 @@ class stock_picking(osv.Model):
                 if move.state == 'done':
                     continue
                 rows_for_sequence = [r for r in rows if r[ORDER_LINE_NUMBER] == move.edi_sequence]
-                ref_operation = move.linked_move_operation_ids[0].operation_id # normally there should only be one operation per move
-                for row in rows_for_sequence:
-                    quantity = float(row[ORDER_LINE_QUANTITY]) or 0.0
-                    sscc_code = row[COLLI_NUMBER] or row[PALLET_NUMBER]
-                    op = operation_db.copy(cr, uid, ref_operation.id, {'product_qty': quantity ,'qty_done': quantity, 'result_package_id': sscc_dictionary[sscc_code]})
-                    processed_ids.append(op)
+                if move.linked_move_operation_ids:
+                    ref_operation = move.linked_move_operation_ids[0].operation_id # normally there should only be one operation per move
+                if rows_for_sequence:
+                    for row in rows_for_sequence:
+                        quantity = float(row[ORDER_LINE_QUANTITY]) or 0.0
+                        sscc_code = row[COLLI_NUMBER] or row[PALLET_NUMBER]
+                        op = operation_db.copy(cr, uid, ref_operation.id, {'product_qty': quantity ,'qty_done': quantity, 'result_package_id': sscc_dictionary[sscc_code]})
+                        processed_ids.append(op)
             unprocessed_ids = operation_db.search(cr, uid, ['&', ('picking_id', '=', delivery.id), '!', ('id', 'in', processed_ids)])
             operation_db.unlink(cr, uid, unprocessed_ids)
 

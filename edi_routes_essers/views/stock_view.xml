@@ -9,6 +9,7 @@
                 <xpath expr="//field[@name='carrier_tracking_ref']" position="after">
                     <field name="crossdock_overrule"/>
                     <field name="groupage_overrule"/>
+                    <field name="number_of_pallets"/>
                 </xpath>
             </field>
         </record>
@@ -21,6 +22,7 @@
                 <xpath expr="//field[@name='weight_net']" position="after">
                     <field name="edi_sequence"/>
                     <field name="storage_location"/>
+
                 </xpath>
             </field>
         </record>
