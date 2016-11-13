@@ -167,11 +167,14 @@ class stock_picking(osv.Model):
                 continue
 
             if not delivery.pack_operation_ids:
+                _logger.info('No Pack Operation IDS. do_prepare partial processing.')
                 delivery.do_prepare_partial()
 
             processed_ids = []
             for move in delivery.move_lines:
+                _logger.info('processing move_line: %s.', move)
                 if move.state == 'done':
+                    _logger.info('move done, skipping: %s.', move)
                     continue
                 rows_for_sequence = [r for r in rows if r[ORDER_LINE_NUMBER] == move.edi_sequence]
                 if move.linked_move_operation_ids:
@@ -182,8 +185,9 @@ class stock_picking(osv.Model):
                         sscc_code = row[COLLI_NUMBER] or row[PALLET_NUMBER]
                         op = operation_db.copy(cr, uid, ref_operation.id, {'product_qty': quantity ,'qty_done': quantity, 'result_package_id': sscc_dictionary[sscc_code]})
                         processed_ids.append(op)
+                    _logger.info('rows for sequence: %s.', rows_for_sequence)
+            _logger.info('processed_ids: %s.', processed_ids) 
             unprocessed_ids = operation_db.search(cr, uid, ['&', ('picking_id', '=', delivery.id), '!', ('id', 'in', processed_ids)])
+            _logger.info('unprocessed_ids: %s.', unprocessed_ids)
             operation_db.unlink(cr, uid, unprocessed_ids)
-
             delivery.do_transfer()
-

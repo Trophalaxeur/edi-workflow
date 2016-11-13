@@ -123,7 +123,7 @@ class account_invoice(osv.Model, EDIMixin):
 
         # edi_doc['TOTAALBTW'] = float('%.2f' % ((invoice.amount_untaxed + edi_doc['BEBATTOTAAL'] + edi_doc['RECUPELTOTAAL'])
 
-        partner = partner_db.browse(cr, uid, invoice.partner_id.id, context)
+        partner = partner_db.browse(cr, uid, invoice.sale_partner_id.id, context)
         if partner:
             edi_doc['FACTUURPLAATS'] = partner.ref
             edi_doc['BTWFACTUUR'] = partner.vat
@@ -132,7 +132,7 @@ class account_invoice(osv.Model, EDIMixin):
             edi_doc['ORDERSTRAAT'] = invoice.sale_partner_id.street[:35].upper()
             edi_doc['ORDERPOSTCODE'] = invoice.sale_partner_id.zip
             edi_doc['ORDERSTAD'] = invoice.sale_partner_id.city
-            edi_doc['FACTUURNAAM'] = invoice.sale_partner_id.name
+            edi_doc['FACTUURNAAM'] = invoice.sale_partner_id.name[:35].upper()
         if company:
             partner = partner_db.browse(cr, uid, company.partner_id.id, context)
             if partner:
@@ -143,7 +143,7 @@ class account_invoice(osv.Model, EDIMixin):
                 edi_doc['ORDERSTRAAT'] = invoice.sale_partner_id.street[:35].upper()
                 edi_doc['ORDERPOSTCODE'] = invoice.sale_partner_id.zip
                 edi_doc['ORDERSTAD'] = invoice.sale_partner_id.city
-                edi_doc['FACTUURNAAM'] = invoice.sale_partner_id.name
+                edi_doc['FACTUURNAAM'] = invoice.sale_partner_id.name[:35].upper()
 
         # Delivery order fields
         # d = datetime.datetime.strptime(delivery.date_done, "%Y-%m-%d %H:%M:%S")
