@@ -84,7 +84,7 @@ class stock_picking(osv.Model, EDIMixin):
                 edi_doc['message']['partys']['party'].append(partner_doc)
 
         partner = partner_db.browse(cr, uid, delivery.sale_partner_id.id, context)
-        if partner and partner.ref and (partner.parent_id.id == 3451 or partner.id == 3451):
+        if partner and partner.ref and (partner.parent_id.vat == 'NL005681108B01' or partner.vat == 'NL005681108B01'):
             _logger.debug("GAMMA!")
             partner_doc = copy.deepcopy(dict(DESADV_PARTY))
             partner_doc['qual'] = 'BY'
