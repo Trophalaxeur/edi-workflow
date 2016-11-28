@@ -85,8 +85,10 @@ class stock_picking(osv.Model):
         ul_db = self.pool.get('product.ul')
 
         PALLET_NUMBER = 'Palletnumber'
+        PALLET_TYPE = 'Pallet size'
         PALLET_WEIGHT_BRUT = 'TOTPALBRUTO'
         PALLET_WEIGHT_NET = 'Tot.Pal.'
+        BOX_TYPE = 'Doostype'
         COLLI_NUMBER = 'Product extension 4'
         COLLI_WEIGHT_BRUT = 'TOTCOLBRUTO'
         COLLI_WEIGHT_NET = 'TOTCOLNETT'
@@ -114,7 +116,15 @@ class stock_picking(osv.Model):
                     if package_ids:
                         pallet_package_id = package_ids[0]
                     else:
-                        ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_essers_pallet')
+                        if row[PALLET_TYPE] == 'EUR':
+                            ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_euro_pallet')
+                        elif row[PALLET_TYPE] == 'DD':
+                            ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_half_pallet')
+                        elif row[PALLET_TYPE] == 'WWP':
+                            ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_disposable_pallet')
+                        else:
+                            ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_essers_pallet')
+                    
                         weight = row[PALLET_WEIGHT_BRUT]
                         weight_net = row[PALLET_WEIGHT_NET]
 
@@ -133,7 +143,16 @@ class stock_picking(osv.Model):
 
                 # create tracking obj for the boxes if necessary
                 box = row[COLLI_NUMBER]
-                ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_essers_box')
+                
+                if row[BOX_TYPE] == 'BLA':
+                    ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_bla_box')
+                elif row[BOX_TYPE] == 'BSM':
+                    ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_bsm_box')
+                elif row[BOX_TYPE] == 'BME':
+                    ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_bme_box')
+                else:
+                    ul_model, ul_id = ref('edi_routes_essers_pclo', 'product_ul_essers_box')
+                
                 weight = row[COLLI_WEIGHT_BRUT]
                 weight_net = row[COLLI_WEIGHT_NET]
 
