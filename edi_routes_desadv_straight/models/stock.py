@@ -102,25 +102,6 @@ class stock_picking(osv.Model, EDIMixin):
         edi_doc['message']['berichtdatum'] = now.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['klantreferentie'] = delivery.order_reference
 
-        #if company:
-        #    partner = self.env['res.partner'].browse(company.partner_id.id)
-        #    if partner and partner.ref:
-        #        partner_doc = copy.deepcopy(dict(DESADV_PARTY))
-        #        partner_doc['qual'] = 'SU'
-        #        partner_doc['gln'] = partner.ref
-        #        edi_doc['message']['partys']['party'].append(partner_doc)
-        #        partner_doc = copy.deepcopy(dict(DESADV_PARTY))
-        #        partner_doc['qual'] = 'SH'
-        #        partner_doc['gln'] = partner.ref
-        #        edi_doc['message']['partys']['party'].append(partner_doc)
-
-        #partner = self.env['res.partner'].browse(delivery.partner_id.id)
-        #if partner and partner.ref:
-        #    partner_doc = copy.deepcopy(dict(DESADV_PARTY))
-        #    partner_doc['qual'] = 'DP'
-        #    partner_doc['gln'] = partner.ref
-        #    edi_doc['message']['partys']['party'].append(partner_doc)
-
         partner = self.env['res.partner'].browse(order[0].partner_id.id)
         if partner and partner.ref:
             partner_doc = copy.deepcopy(dict(DESADV_PARTY))
@@ -142,7 +123,6 @@ class stock_picking(osv.Model, EDIMixin):
             partner_doc['qual'] = 'DP'
             partner_doc['gln']  = partner.ref
             edi_doc['message']['partys']['party'].append(partner_doc)
- 
 
         # Line items
         line_counter = 1
