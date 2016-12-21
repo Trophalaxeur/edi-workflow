@@ -88,7 +88,7 @@ class account_invoice(osv.Model, EDIMixin):
         # Instantiate variables
         edi_doc = copy.deepcopy(dict(INVOICE))
 
-        ref = invoice.origin.partition(':')
+        #ref = invoice.origin.partition(':')
         pick_db = self.pool.get('stock.picking')
         order_db = self.pool.get('sale.order')
         partner_db = self.pool.get('res.partner')
