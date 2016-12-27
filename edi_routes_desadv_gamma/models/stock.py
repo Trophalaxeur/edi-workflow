@@ -133,7 +133,7 @@ class stock_picking(osv.Model, EDIMixin):
             partner_doc['gln'] = partner.ref
             edi_doc['message']['partys']['party'].append(partner_doc)
 
-        partner = self.env['res.partner'].browse(delivery.sale_partner_id.id)
+        partner = self.env['res.partner'].browse(delivery.partner_id.id)
         if partner and partner.ref:
             partner_doc = copy.deepcopy(dict(DESADV_PARTY))
             partner_doc['qual'] = 'DP'
@@ -183,11 +183,15 @@ class stock_picking(osv.Model, EDIMixin):
             # only one tracking per cps segment
             tracking_segment = {}
             tracking_segment["iso"] = tracking.ul_id.name  # pallet | box
+            tracking_segment["children"] = 0
+            for child in tracking.children_ids:
+                tracking_segment["children"] = 1
             tracking_segment["sscc"] = tracking.name
             tracking_segment["qua"] = 1
             tracking_segment["brutweight"] = tracking.weight
             cps_segment["pacs"]["pac"].append(tracking_segment)
-
+            #quant is gesorteerd op ID
+            #dit is niet altijd correct, moet op picking volgorde zijn volgens LINE ID van Essers PCLO 
             for quant in tracking.quant_ids:
                 line_segment = {}
                 product = self.env['product.product'].browse(quant.product_id.id)
@@ -247,7 +251,6 @@ class stock_picking(osv.Model, EDIMixin):
 
         cps_dictionary = {}
         for tracking in tracking_roots:
-            import pdb; pdb.set_trace()
             for node, parent_node in traverse(tracking):
                 if parent_node:
                     cps_segment, line_counter = _build_cps_for_tracking(node, cps_dictionary[parent_node.id]["line"], line_counter=line_counter)
@@ -264,8 +267,15 @@ class stock_picking(osv.Model, EDIMixin):
             pac = cps["pacs"]["pac"][0]
             # if pac["iso"] == 'pallet':
             if "Box" in pac["iso"]:
+                _logger.debug("Box found, added to count")
                 number_of_packs +=1
                 weight_of_packs += pac["brutweight"]
+            if "Pallet" in pac["iso"] and int(pac["children"]) == 0:
+                _logger.debug("Pallet found without children, added to count")
+                number_of_packs +=1
+                weight_of_packs += pac["brutweight"]
+
+
 
         # add total weight of pallets and count of pallets to the first segment
         header_cps_segment["pacs"]["pac"].append({
