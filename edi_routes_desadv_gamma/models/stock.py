@@ -143,6 +143,8 @@ class stock_picking(osv.Model, EDIMixin):
         if delivery.incoterm.id == 1:
             edi_doc['message']['incoterm'] = "4"
 
+        #OUT/060314 > 3 lijnen , 4 quants, 1 pack : 542006040000659821
+
         # Get trackings from all delivery lines without duplicates
         trackings = []
         for operation in delivery.pack_operation_ids:
@@ -151,6 +153,7 @@ class stock_picking(osv.Model, EDIMixin):
             else:
                 raise osv.except_osv(_('Warning!'), _("There is a line without SSCC number (pack) {!s}").format(operation))
         trackings = set(trackings)  # remove duplicates
+        
         def find_root(element):
             if element.parent_id:
                 return find_root(element.parent_id)
@@ -158,8 +161,10 @@ class stock_picking(osv.Model, EDIMixin):
                 return element
 
         # find all root trackings
-        tracking_roots = map(find_root, trackings)
-        tracking_roots = set(tracking_roots)
+        #tracking_roots = map(find_root, trackings)
+        #tracking_roots = set(tracking_roots)
+        
+        tracking_roots = trackings
 
         def traverse(node, parent_node=None):
             yield node, parent_node
