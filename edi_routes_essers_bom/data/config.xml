@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+        <record id="edi_essers_manufacturing_out" model="edi.tools.edi.flow">
+            <field name="name">Essers Manufacturing Order(out)</field>
+            <field name="direction">out</field>
+            <field name="model">mrp.production</field>
+            <field name="method">send_edi_export_essers_mrp</field>
+            <field name="partner_resolver"></field>
+        </record>
+        <record id="edi_essers_manufacturing_in" model="edi.tools.edi.flow">
+            <field name="name">Essers Manufacturing Order(in)</field>
+            <field name="direction">in</field>
+            <field name="model">mrp.production</field>
+            <field name="method">receive_edi_import_essers_mrp</field>
+            <field name="partner_resolver"></field>
+        </record>
+    </data>
+</openerp>
