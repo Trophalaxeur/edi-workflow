@@ -245,11 +245,14 @@ class mrp_production(models.Model):
                         raise except_orm(_('Production Qty mismatch!'), _('Produced quantities are not in line with BoM'))
                 _logger.info("new production value is %d", qty_produced)
 
-        wiz_obj = self.env['mrp.product.produce']
-        ctx = dict(self.env.context, active_id=mo.id)
-        produce_wiz = wiz_obj.with_context(ctx).create({'product_qty': qty_produced})
-        produce_wiz.do_produce()
+        #wiz_obj = self.env['mrp.product.produce']
+        #ctx = dict(self.env.context, active_id=mo.id)
+        #produce_wiz = wiz_obj.with_context(ctx).create({'product_qty': qty_produced, 'mode': 'consume_produce'})
+        #import pdb; pdb.set_trace()
+        #produce_wiz.on_change_qty(qty_produced,produce_wiz.consume_lines)
+        #produce_wiz.do_produce()
 
+        mo.action_produce(mo.id,qty_produced,'consume_produce')
         _logger.info("qty produced = %d", qty_produced)
 
         return True
