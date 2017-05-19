@@ -114,6 +114,7 @@ class stock_picking(osv.Model, EDIMixin):
                 partner_doc = copy.deepcopy(dict(DESADV_PARTY))
                 partner_doc['qual'] = 'SU'
                 partner_doc['gln']  = partner.ref
+                partner_doc['vatnum'] = partner.vat.replace(" ","")
                 edi_doc['message']['partys']['party'].append(partner_doc)
                 partner_doc = copy.deepcopy(dict(DESADV_PARTY))
                 partner_doc['qual'] = 'SH'
@@ -121,7 +122,8 @@ class stock_picking(osv.Model, EDIMixin):
                 edi_doc['message']['partys']['party'].append(partner_doc)
         
         partner = self.env['res.partner'].browse(delivery.sale_partner_id.id)
-        if partner and partner.ref and (partner.parent_id.vat == 'NL005681108B01' or partner.vat == 'NL005681108B01'):
+        #if partner and partner.ref and (partner.parent_id.vat == 'NL005681108B01' or partner.vat == 'NL005681108B01' or partner.vat == 'IT05602710963'):
+        if partner and partner.ref and (any(taxcode in ('NL005681108B01','IT05602710963') for taxcode in (partner.parent_id.vat,partner.vat))):
             _logger.debug("GAMMA!")
             partner_doc = copy.deepcopy(dict(DESADV_PARTY))
             partner_doc['qual'] = 'BY'
@@ -216,6 +218,8 @@ class stock_picking(osv.Model, EDIMixin):
                         bomproduct = self.env['product.product'].browse(bom.product_id.id)
                         line_segment = {}
                         line_segment["num"] = line_counter
+                        line_segment["suart"] = bomproduct.name
+                        line_segment["desc"] = bomproduct.description[:35]
                         line_segment["gtin"] = bomproduct.ean13
                         line_segment["delqua"] = int(quant.qty)*int(bom.product_qty)
                         line_segment["ucgln"] = order.partner_id.ref
@@ -226,6 +230,8 @@ class stock_picking(osv.Model, EDIMixin):
                 else:
                     _logger.info("no bom product or no bomified order, appending product to EDI doc")
                     line_segment["num"] = line_counter
+                    line_segment["suart"] = product.name
+                    line_segment["desc"] = product.description[35:]
                     line_segment["gtin"] = product.ean13
                     line_segment["delqua"] = int(quant.qty)
                     line_segment["ucgln"] = order.partner_id.ref
@@ -270,7 +276,6 @@ class stock_picking(osv.Model, EDIMixin):
             if not cps["pacs"]["pac"]:
                 continue
             pac = cps["pacs"]["pac"][0]
-            # if pac["iso"] == 'pallet':
             if "Box" in pac["iso"]:
                 _logger.debug("Box found, added to count")
                 number_of_packs +=1
