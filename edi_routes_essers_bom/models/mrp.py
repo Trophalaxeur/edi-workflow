@@ -244,6 +244,8 @@ class mrp_production(models.Model):
                     else:
                         raise except_orm(_('Production Qty mismatch!'), _('Produced quantities are not in line with BoM'))
                 _logger.info("new production value is %d", qty_produced)
+            else:
+                raise except_orm(_('Production Qty mismatch!'), _('Produced quantities are not in line with BoM'))
 
         #wiz_obj = self.env['mrp.product.produce']
         #ctx = dict(self.env.context, active_id=mo.id)
