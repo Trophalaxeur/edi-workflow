@@ -290,9 +290,9 @@ class sale_order(osv.Model, EDIMixin):
         if is_dst():
             _logger.debug("Delivery calculated in DST")
             if param['partner_shipping_id'] == 526:
-                param['requested_date'] = param['requested_date'] + ' 06:00:00'
+                param['requested_date'] = param['requested_date'] + ' 04:30:00'
             if param['partner_shipping_id'] == 560:
-                param['requested_date'] = param['requested_date'] + ' 13:30:00'
+                param['requested_date'] = param['requested_date'] + ' 8:30:00'
             if param['partner_shipping_id'] == 562:
                 param['requested_date'] = param['requested_date'] + ' 07:30:00'
             if param['partner_shipping_id'] == 561:
@@ -302,9 +302,9 @@ class sale_order(osv.Model, EDIMixin):
         else:
             _logger.debug("Delivery calculated without DST")
             if param['partner_shipping_id'] == 526:
-                param['requested_date'] = param['requested_date'] + ' 07:00:00'
+                param['requested_date'] = param['requested_date'] + ' 05:30:00'
             if param['partner_shipping_id'] == 560:
-                param['requested_date'] = param['requested_date'] + ' 14:30:00'
+                param['requested_date'] = param['requested_date'] + ' 9:30:00'
             if param['partner_shipping_id'] == 562:
                 param['requested_date'] = param['requested_date'] + ' 08:30:00'
             if param['partner_shipping_id'] == 561:
