@@ -264,6 +264,8 @@ class stock_picking(models.Model):
             move_line = move_line[0]
             if move_line.product_id.name.upper() != edi_line['MATERIAL'].upper():
                 raise EdiValidationError('Line mentioned with EDI sequence {!s} has a different material.'.format(edi_line['DELIV_ITEM']))
+            if move_line.location_id.id != move_line.reserved_quant_ids[0].location_id.id:
+                raise EdiValidationError('Location mismatch between source and quant reservation on line {!s}.'.format(edi_line['DELIV_ITEM']))
 
         _logger.debug("Essers document valid")
         return True
