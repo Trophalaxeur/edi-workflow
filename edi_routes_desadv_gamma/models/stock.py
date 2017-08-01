@@ -231,7 +231,7 @@ class stock_picking(osv.Model, EDIMixin):
                     _logger.info("no bom product or no bomified order, appending product to EDI doc")
                     line_segment["num"] = line_counter
                     line_segment["suart"] = product.name
-                    line_segment["desc"] = product.description[35:]
+                    line_segment["desc"] = product.description[:35]
                     line_segment["gtin"] = product.ean13
                     line_segment["delqua"] = int(quant.qty)
                     line_segment["ucgln"] = order.partner_id.ref
