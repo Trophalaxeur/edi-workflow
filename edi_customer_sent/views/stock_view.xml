@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+        <record id="view_picking_tree_edi_customer_sent" model="ir.ui.view">
+            <field name="name">view.picking.tree.edi.customer.sent</field>
+            <field name="model">stock.picking</field>
+            <field name="type">tree</field>
+            <field name="inherit_id" ref="stock.vpicktree"/>
+            <field name="arch" type="xml">
+                <field name="name" position="after">
+                    <field name="customer_sent" string="Customer Sent" />
+                </field>
+            </field>
+        </record>
+    </data>
+</openerp>
