@@ -29,6 +29,7 @@ INVOICE = {
     'FACTUURNAAM': '',
     'ORDERNAAM':'',
     'ORDERSTRAAT': '',  # order.partner_id.street
+    'ORDERSTRAAT2' : '', # order.partner_id.street2
     'ORDERPOSTCODE': '',  # order.partner_id.zip
     'ORDERSTAD': '',  # order.partner_id.city
     'DATUM': '',  # account.invoice:create_date
@@ -130,9 +131,11 @@ class account_invoice(osv.Model, EDIMixin):
             edi_doc['ORDERPLAATS'] = order.partner_id.ref
             edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
             edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
+            if invoice.partner_id.street2:
+                edi_doc['ORDERSTRAAT2'] = invoice.partner_id.street2[:35].upper()
             edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
             edi_doc['ORDERSTAD'] = order.partner_id.city
-            edi_doc['FACTUURNAAM'] = invoice.partner_id.name
+            edi_doc['FACTUURNAAM'] = invoice.partner_id.name[:35]
         if company:
             partner = partner_db.browse(cr, uid, company.partner_id.id, context)
             if partner:
@@ -141,9 +144,11 @@ class account_invoice(osv.Model, EDIMixin):
                 edi_doc['ORDERPLAATS'] = order.partner_id.ref
                 edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
                 edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
+                if invoice.partner_id.street2:
+                    edi_doc['ORDERSTRAAT2'] = invoice.partner_id.street2[:35].upper()
                 edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
                 edi_doc['ORDERSTAD'] = order.partner_id.city
-                edi_doc['FACTUURNAAM'] = invoice.partner_id.name
+                edi_doc['FACTUURNAAM'] = invoice.partner_id.name[:35]
 
         # Delivery order fields
         d = datetime.datetime.strptime(delivery.date_done, "%Y-%m-%d %H:%M:%S")

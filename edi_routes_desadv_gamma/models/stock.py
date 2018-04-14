@@ -97,7 +97,7 @@ class stock_picking(osv.Model, EDIMixin):
         d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
 
         edi_doc['message']['pakbonnummer'] = delivery.name
-        edi_doc['message']['desadv_naam']      = delivery.name
+        edi_doc['message']['desadv_naam']      = delivery.desadv_name
         edi_doc['message']['leverplandatum']   = d.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['berichtdatum'] = now.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['klantreferentie'] = delivery.order_reference
