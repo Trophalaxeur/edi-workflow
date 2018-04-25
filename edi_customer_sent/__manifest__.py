@@ -6,8 +6,9 @@
     'author': 'Clubit BVBA',
     'website': 'http://www.clubit.be',
     'depends': [
-        'edi_routes_desadv_crossdock',
-        'edi_routes_invoic',
+        #'edi_routes_desadv_crossdock',
+        #'edi_routes_invoic',
+        'stock'
     ],
     'data': [
         'views/account_view.xml',

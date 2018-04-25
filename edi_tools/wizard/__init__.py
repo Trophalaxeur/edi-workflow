@@ -1,3 +1,3 @@
-import edi_wizard_ready
-import edi_wizard_archive_incoming
-import edi_wizard_outgoing
+from . import edi_wizard_ready
+from . import edi_wizard_archive_incoming
+from . import edi_wizard_outgoing

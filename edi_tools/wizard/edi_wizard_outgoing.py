@@ -1,7 +1,7 @@
 from lxml import etree
 
-from openerp import models, fields, api, _
-from openerp.exceptions import except_orm
+from odoo import models, fields, api, _
+from odoo.exceptions import except_orm
 
 class edi_tools_edi_wizard_outgoing(models.TransientModel):
     _name = 'edi.tools.edi.wizard.outgoing'
@@ -27,7 +27,7 @@ class edi_tools_edi_wizard_outgoing(models.TransientModel):
     @api.model
     def fields_view_get(self, view_id=None, view_type=False, toolbar=False, submenu=False):
         context = self._context
-        res = super(edi_tools_edi_wizard_outgoing, self).fields_view_get(view_id=view_id, view_type=view_type, context=context, toolbar=toolbar, submenu=False)
+        res = super(edi_tools_edi_wizard_outgoing, self).fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=False)
         if not context.get('active_model'): return res
         # limit flows based on the ones that are active
         partnerflows = self.env['edi.tools.edi.partnerflow'].search([('partnerflow_active', '=', True)])

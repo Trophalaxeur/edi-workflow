@@ -3,3 +3,8 @@ from . import res_config
 from . import exceptions
 from . import edi
 from . import settings
+from . import edi_mixing
+from . import res_company
+from . import sale_order
+from . import res_currency
+from . import res_partner

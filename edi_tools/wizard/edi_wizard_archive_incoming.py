@@ -1,8 +1,8 @@
-from openerp.osv import osv
-from openerp.tools.translate import _
-from openerp import netsvc
+from odoo import models, api
+from odoo.exceptions import ValidationError
+from odoo.tools.translate import _
 
-class edi_tools_edi_wizard_archive_incoming(osv.TransientModel):
+class edi_tools_edi_wizard_archive_incoming(models.TransientModel):
     _name = 'edi.tools.edi.wizard.archive.incoming'
     _description = 'Archive EDI Documents'
 
@@ -11,19 +11,18 @@ class edi_tools_edi_wizard_archive_incoming(osv.TransientModel):
         This method is used by the EDI wizard to push
         multiple documents to the workflow "archived" state.
         ---------------------------------------------------- '''
-    def archive(self, cr, uid, ids, context=None):
+    @api.multi
+    def archive(self):
         # Get the selected documents
         # --------------------------
-        ids = context.get('active_ids',[])
-        if not ids:
-            raise osv.except_osv(_('Warning!'), _("You did not provide any documents to archive!"))
-
-        # Push each document to archived
-        # ------------------------------
-        wf_service = netsvc.LocalService("workflow")
-        for document in self.pool.get('edi.tools.edi.document.incoming').browse(cr, uid, ids, context):
-            if document.state in ['new','ready','processed','in_error']:
-                wf_service.trg_validate(uid, 'edi.tools.edi.document.incoming', document.id, 'button_to_archived', cr)
-
-        return {'type': 'ir.actions.act_window_close'}
+        for record in self:
+            ids = self.env.context.get('active_ids',[])
+            if not ids:
+                raise ValidationError(_("You did not provide any documents to archive!"))
+            # Push each document to archived
+            # ------------------------------
+            for document in self.env['edi.tools.edi.document.incoming'].browse(ids):
+                if document.state in ['new','ready','processed','in_error']:
+                    document.button_to_archived()
+            return {'type': 'ir.actions.act_window_close'}
 

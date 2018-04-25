@@ -1,33 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<odoo>
     <data>
-
-        <record id="view_edi_tools_config_settings" model="ir.ui.view">
+        <record id="res_config_settings_view_form" model="ir.ui.view">
             <field name="name">EDI Tools settings</field>
-            <field name="model">edi.tools.config.settings</field>
+            <field name="model">res.config.settings</field>
+            <field name="priority" eval="85"/>
+            <field name="inherit_id" ref="base.res_config_settings_view_form"/>
             <field name="arch" type="xml">
-                <form string="Configure EDI Tools" class="oe_form_configuration">
-                    <header>
-                        <button string="Apply" type="object" name="execute" class="oe_highlight"/>
-                        or
-                        <button string="Cancel" type="object" name="cancel" class="oe_link"/>
-                    </header>
-                    <div>
-                        <field name="default_edi_root_directory"/>
+                <xpath expr="//div[hasclass('settings')]" position="inside">
+                    <div class="app_settings_block" data-string="EDI" string="EDI" data-key="EDI">
+                        <h2>EDI</h2>
+                        <div class="row mt16 o_settings_container" title="EDI">
+                            <div class="col-xs-12 col-md-6 o_setting_box">
+                                <div class="o_setting_right_pane">
+                                    <label for="edi_root_directory"/>
+                                    <div class="content-group">
+                                        <div class="mt16">
+                                            <field name="edi_root_directory" class="o_light_label"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </form>
+                </xpath>
             </field>
         </record>
+        <!--<record id="view_edi_tools_config_settings" model="ir.ui.view">-->
+        <!--<field name="name">EDI Tools settings</field>-->
+        <!--<field name="model">res.config.settings</field>-->
+        <!--<field name="priority" eval="70"/>-->
+        <!--<field name="arch" type="xml">-->
+        <!--<form string="Configure EDI Tools" class="oe_form_configuration">-->
+        <!--<header>-->
+        <!--<button string="Apply" type="object" name="execute" class="oe_highlight"/>-->
+        <!--or-->
+        <!--<button string="Cancel" type="object" name="cancel" class="oe_link"/>-->
+        <!--</header>-->
+        <!--<div>-->
+        <!--<label for="edi_root_directory"/>-->
+        <!--<field name="edi_root_directory"/>-->
+        <!--</div>-->
+        <!--</form>-->
+        <!--</field>-->
+        <!--</record>-->
 
-        <record id="action_edi_tools_configuration" model="ir.actions.act_window">
-            <field name="name">EDI Tools Settings</field>
-            <field name="res_model">edi.tools.config.settings</field>
-            <field name="view_mode">form</field>
-            <field name="target">inline</field>
-        </record>
+        <!--<record id="action_edi_tools_configuration" model="ir.actions.act_window">-->
+        <!--<field name="name">EDI Tools Settings</field>-->
+        <!--<field name="res_model">res.config.settings</field>-->
+        <!--<field name="view_mode">form</field>-->
+        <!--<field name="target">inline</field>-->
+        <!--</record>-->
 
-        <menuitem id="menu_edi_tools_configuration" parent="base.menu_config"
-            sequence="100" action="action_edi_tools_configuration"/>
+        <!--<menuitem id="menu_edi_tools_configuration" parent="menu_edi_tools"-->
+        <!--sequence="100" action="action_edi_tools_configuration"/>-->
 
     </data>
-</openerp>
+</odoo>

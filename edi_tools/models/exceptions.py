@@ -1,4 +1,4 @@
-from openerp.exceptions import except_orm
+from odoo.exceptions import except_orm
 
 class EdiIgnorePartnerError(except_orm):
     def __init__(self, msg):

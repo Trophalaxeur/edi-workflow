@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
-<openerp>
+<odoo>
 	<data>
-
 		<!-- EDI Document import handler -->
 		<record model="ir.cron" id="edi_tools_edi_document_import">
 			<field name="name">EDI Document import</field>
@@ -11,9 +10,9 @@
 			<field name="numbercall">-1</field>
 			<field name="doall" eval="False" />
 			<field name="nextcall" eval="time.strftime('%Y-%m-%d %H:%M')" />
-			<field name="model">edi.tools.edi.document.incoming</field>
-			<field name="function">import_process</field>
-			<field name="args">()</field>
+			<field name="model_id" ref="model_edi_tools_edi_document_incoming"/>
+			<field name="state">code</field>
+			<field name="code">model.import_process()</field>
 		</record>
 
 		<!-- EDI Document processor -->
@@ -25,10 +24,10 @@
 			<field name="numbercall">-1</field>
 			<field name="doall" eval="False" />
 			<field name="nextcall" eval="time.strftime('%Y-%m-%d %H:%M')" />
-						<field name="model">edi.tools.edi.document.incoming</field>
-			<field name="function">document_process</field>
-			<field name="args">()</field>
+			<field name="model_id" ref="model_edi_tools_edi_document_incoming"/>
+			<field name="state">code</field>
+			<field name="code">model.document_process()</field>
 		</record>
 
 	</data>
-</openerp>
+</odoo>
