@@ -199,7 +199,7 @@ class sale_order(models.Model, EDIMixin):
 class sale_order_line(models.Model, EDIMixin):
     _inherit = 'sale.order.line'
 
-    def edi_export(self, records, edi_struct=None, context=None):
+    def edi_export(self, records, edi_struct=None):
         """Overridden to provide sale order line fields with the expected names
            (sale and purchase orders have different column names)"""
         edi_struct = dict(edi_struct or SALE_ORDER_LINE_EDI_STRUCT)

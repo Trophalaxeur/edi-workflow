@@ -1,17 +1,13 @@
-import copy
 import datetime
-from itertools import groupby
-import json
 import logging
-
-from openerp import api, _
-from openerp.osv import osv, fields
-from openerp.exceptions import except_orm
-from openerp.addons.edi import EDIMixin
+from odoo import api, _
+from odoo import models, fields
+from odoo.exceptions import except_orm
+from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
 
 _logger = logging.getLogger(__name__)
 
-class stock_picking(osv.Model, EDIMixin):
+class stock_picking(models.Model, EDIMixin):
     _inherit = "stock.picking"
 
     @api.model
@@ -36,15 +32,7 @@ class stock_picking(osv.Model, EDIMixin):
 
     @api.model
     def edi_export_calwms(self, delivery, edi_struct=None):
-
-        partner_db = self.pool.get('res.partner')
-        company_db = self.pool.get('res.company')
-        product_db = self.pool.get('product.product')
-
         co_id = 1
-
-        company = self.env['res.company'].browse(co_id)
-        now = datetime.datetime.now()
         d = datetime.datetime.strptime(delivery.scheduled_date, "%Y-%m-%d %H:%M:%S")
         #V08 : d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
         #edi_doc = []
@@ -78,7 +66,7 @@ class stock_picking(osv.Model, EDIMixin):
             ZRADID = str(delivery.partner_id.id)
             ZRZRRG = str(line_counter)
             ZRTYPE = ZNTYPE
-            ZRARID = str(product.ean13)
+            ZRARID = str(product.barcode)
             ZRAVEO = str(int(line.product_uom_qty))
 
             line_counter = line_counter + 1
