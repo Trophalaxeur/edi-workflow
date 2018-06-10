@@ -4,6 +4,8 @@ from odoo import api, _
 from odoo import models, fields
 from odoo.exceptions import except_orm
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
+from odoo.addons.edi_tools.models.exceptions import EdiIgnorePartnerError, EdiValidationError
+
 
 _logger = logging.getLogger(__name__)
 
@@ -96,7 +98,7 @@ class stock_picking(models.Model, EDIMixin):
     #Import section
     @api.model
     def edi_import_calwms_validator(self, document_ids):
-        _logger.debug("Validating CALwms document")
+        _logger.info("Validating CALwms document")
         return True
 
     @api.model
@@ -109,7 +111,7 @@ class stock_picking(models.Model, EDIMixin):
     def edi_import_calwms(self, document):
         content = document.content
         i = 0
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         for lin in content.splitlines():
             if i == 0:
                 ZNPREF = lin[30:64].strip()
@@ -136,15 +138,20 @@ class stock_picking(models.Model, EDIMixin):
                 move_line = delivery.move_lines.filtered(lambda ml: str(int(ml.edi_sequence)) == str(int(ZRZRPR)))
             
                 if len(move_line.move_line_ids) == 0:
-                    raise except_orm(_('No pack operation found!'), _('No pack operation was found for edi sequence %s in picking %s (%d)') % (ZRZRPR, delivery.name, delivery.id))
-                
+                    _logger.info("No Pack Operation found for EDI Sequence %s", ZRZRPR)
+                    break
                 try:
-                    move_line.move_line_ids[0].lot_id = self.env['stock.production.lot'].create({'name': str(ZRPTID),'use_date': BBD,'product_id': move_line.product_id.id, 'product_qty': float(ZRPHAN)})
+                    move_line.move_line_ids[0].lot_id = self.env['stock.production.lot'].create({'name': str(ZRPTID),'product_id': move_line.product_id.id, 'product_qty': float(ZRPHAN)})
                 except:
-                    raise except_orm(_('Two identitcal products with same lot ID entered!'), _('Combination of Product %s and Lot %s exists already') % (move_line.product_id.name, ZRPTID))
+                    _logger.info("Two identitcal products with same lot ID entered!: Combination of Product %s and Lot %s exists already", move_line.product_id.name, ZRPTID)
+                try:
+                    move_line.move_line_ids[0].lot_id.use_date = BBD
+                except:
+                    _logger.info("No Best Before Date")
+                    pass
                 move_line.move_line_ids[0].lot_id.product_qty = float(ZRPHAN)
                 move_line.move_line_ids[0].qty_done = float(ZRPHAN)
-                _logger.debug("move_line %d prepared with content: lot %s quantity %d bestbefore %s", int(ZRZRPR), ZRPTID, float(ZRPHAN), BBD)
+                _logger.info("move_line %d prepared with content: lot %s quantity %d bestbefore %s", int(ZRZRPR), ZRPTID, float(ZRPHAN), str(BBD))
             
         # execute the transfer of the picking
         delivery.do_transfer()
