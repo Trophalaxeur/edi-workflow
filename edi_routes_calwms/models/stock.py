@@ -4,8 +4,14 @@ from odoo import api, _
 from odoo import models, fields
 from odoo.exceptions import except_orm
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
+from odoo.addons.edi_tools.models.exceptions import EdiIgnorePartnerError, EdiValidationError
+
 
 _logger = logging.getLogger(__name__)
+
+class stock_move(models.Model):
+    _inherit = "stock.move"
+    edi_sequence = fields.Char(size=256, copy=False)
 
 class stock_picking(models.Model, EDIMixin):
     _inherit = "stock.picking"
@@ -13,8 +19,8 @@ class stock_picking(models.Model, EDIMixin):
     #Export Section
     @api.model
     def valid_for_edi_export_calwms(self, record):
-        if record.state != 'assigned':
-            return False
+#        if record.state != 'assigned':
+#            return False
         return True
 
     @api.multi
@@ -26,7 +32,7 @@ class stock_picking(models.Model, EDIMixin):
 
         for picking in valid_pickings:
             content = picking.edi_export_calwms(picking, edi_struct=None)
-            result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name, content, partner_id.id, 'stock.picking', 'send_edi_export_calwms', type='STRING')
+            result = self.env['edi.tools.edi.document.outgoing'].create_from_content(picking.name.replace(' ','_'), content, partner_id.id, 'stock.picking', 'send_edi_export_calwms', type='STRING')
             if not result:
                 raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following picking %s') % (picking.name)))
         return True
@@ -38,7 +44,6 @@ class stock_picking(models.Model, EDIMixin):
         #V08 : d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
         edi_doc = ''
         picking_type = delivery.picking_type_id.code #incoming outgoing internal
-
         # Basic header fields
         ZNRECT = 'ZEN' # 1 3
         ZNVERS = '2' # 4 4
@@ -46,14 +51,21 @@ class stock_picking(models.Model, EDIMixin):
             ZNTYPE = '001' # 22 24
         else:
             ZNTYPE = '011'
-        ZNPREF = delivery.name # 25  59
-        ZNGU_D = d.strftime("%Y%m%d") #desired delivery date CCYYMMDD # 113  120 for outbound
-        ZNGT_D = d.strftime("%Y%m%d") #planned date CCYYMMDD # 141 148 for inbound
-        ZNRAID = str(delivery.partner_id.id) # 169  182
+        ZNPREF = delivery.name.replace(' ','_').ljust(35) # 25  59
+        ZNGU_D = d.strftime("%Y%m%d").ljust(8) #desired delivery date CCYYMMDD # 113  120 for outbound
+        ZNGT_D = d.strftime("%Y%m%d").ljust(8) #planned date CCYYMMDD # 141 148 for inbound
+        ZNRAID = str(delivery.partner_id.id).ljust(14) # 169  182
+        ZNRREF = delivery.origin.ljust(35) # 197  231
+        ZNRNAM = delivery.partner_id.name[:35].ljust(80)	#Name of consignee 40+40	232	311
+        ZNRADR = delivery.partner_id.street[:37].ljust(40)	#Address of consignee 40        312	351
+        ZNRPCD = delivery.partner_id.zip[:10].ljust(10)	#ZIP of consignee 10            352	361
+        ZNRPLT = delivery.partner_id.city[:35].ljust(40)	#City of consignee 40		362	401
+        ZNRLAN = delivery.partner_id.country_id.code.ljust(3)	#Land of consignee 3    442	444
+
         if picking_type == 'incoming':
-            header = ZNRECT.ljust(3) + ZNVERS.ljust(1) + ''.ljust(17) + ZNTYPE.ljust(3) + ZNPREF.ljust(35) + ''.ljust(81) + ZNGT_D.ljust(8) + ''.ljust(20) + ZNRAID.ljust(14)
+            header = ZNRECT + ZNVERS + ''.ljust(17) + ZNTYPE + ZNPREF + ''.ljust(81) + ZNGT_D + ''.ljust(20) + ZNRAID + ''.ljust(14) + ZNRREF + ZNRNAM + ZNRADR + ZNRPCD + ZNRPLT + ZNRLAN
         else:
-            header = ZNRECT.ljust(3) + ZNVERS.ljust(1) + ''.ljust(17) + ZNTYPE.ljust(3) + ZNPREF.ljust(35) + ''.ljust(53) + ZNGU_D.ljust(8) + ''.ljust(48) + ZNRAID.ljust(14)
+            header = ZNRECT + ZNVERS + ''.ljust(17) + ZNTYPE + ZNPREF + ''.ljust(53) + ZNGU_D + ''.ljust(48) + ZNRAID + ''.ljust(14) + ZNRREF + ZNRNAM + ZNRADR + ZNRPCD + ZNRPLT + ZNRLAN
         edi_doc = edi_doc +header + '\n'
 
         # Line items
@@ -65,17 +77,20 @@ class stock_picking(models.Model, EDIMixin):
             ZRVERS = '2'
             ZRADID = str(delivery.partner_id.id).ljust(14)
             ZRZRPR = str(line_counter).ljust(35)
-            ZRTYPE = ZNTYPE.ljust(3)
-            ZRARID = str(product.barcode).ljust(14)
+            ZRTYPE = ZNTYPE
+            ZRARID = str(product.default_code).ljust(14)
             ZRAVEO = str(int(line.product_uom_qty))
 
             #Write the original line sequence to the move line for matching on import
             line.write({'edi_sequence': "%06d" % (line_counter,)})
 
             line_counter = line_counter + 1
-            line_content = ZRRECT + ZRVERS + ZRADID + ''.ljust(6) + ZRTYPE + ZRZRPR + ''.ljust(3) + ZRARID + ''.ljust(169) + ZRAVEO.ljust(6)
+            line_content = ZRRECT + ZRVERS + ZRADID + ''.ljust(7) + ZRTYPE + ZRZRPR + ''.ljust(3) + ZRARID + ''.ljust(167) + ZRAVEO.ljust(6)
             edi_doc = edi_doc +line_content + '\n'
 
+        #remove illegal characters
+        edi_doc = edi_doc.replace('ä', 'a').replace('Ä', 'A').replace('ö', 'o').replace('Ö', 'O').replace('ü', 'u').replace('Ü', 'U').replace('ß', 's').replace('ç', 'c').replace('Ç', 'C').replace('â', 'a').replace('Ğ', 'G').replace('ğ', 'g').replace('İ', 'I').replace('î', 'i').replace('Ş', 'S').replace('ş', 's')
+        
         # Return the result
         return edi_doc
 
@@ -83,7 +98,7 @@ class stock_picking(models.Model, EDIMixin):
     #Import section
     @api.model
     def edi_import_calwms_validator(self, document_ids):
-        _logger.debug("Validating CALwms document")
+        _logger.info("Validating CALwms document")
         return True
 
     @api.model
@@ -96,6 +111,7 @@ class stock_picking(models.Model, EDIMixin):
     def edi_import_calwms(self, document):
         content = document.content
         i = 0
+        #import pdb; pdb.set_trace()
         for lin in content.splitlines():
             if i == 0:
                 ZNPREF = lin[30:64].strip()
@@ -104,11 +120,7 @@ class stock_picking(models.Model, EDIMixin):
         delivery = self.search([('name', '=', ZNPREF)])
         _logger.debug("Delivery found %d (%s)", delivery.id, delivery.name)
 
-        if not delivery.pack_operation_ids:
-            _logger.info("No pack_operation_ids, executing do_prepare_partial()")
-            delivery.do_prepare_partial()
-
-        processed_ids = []
+        #processed_ids = []
         for edi_line in content.splitlines():
             # map line to relevant fields
             if i == 0:
@@ -118,27 +130,29 @@ class stock_picking(models.Model, EDIMixin):
             if i > 0:
                 ZRZRPR = edi_line[34:68].strip() #Line Reference
                 ZRARID = edi_line[72:85].strip() #Item Code
+                ZRPTID = edi_line[86:120].strip() #Lot Number
                 ZRVVDT = edi_line[144:152].strip() #Minimal BBD
-                ZRPHAN = edi_line[289:295].strip() #QTY Delivered in SKU
+                ZRPHAN = edi_line[290:295].strip() #QTY Delivered in SKU
+                BBD = ZRVVDT[0:4]+'-'+ZRVVDT[4:6]+'-'+ZRVVDT[6:8]
 
-            move_line = delivery.move_lines.filtered(lambda ml: ml.edi_sequence == ZRZRPR)
-            if len(move_line.linked_move_operation_ids) == 0:
-                raise except_orm(_('No pack operation found!'), _('No pack operation was found for edi sequence %s in picking %s (%d)') % (ZRZRPR, delivery.name, delivery.id))
-            pack_operation = move_line.linked_move_operation_ids[0].operation_id
-            if pack_operation.remaining_qty >= 0.0:
-                pack_operation.with_context(no_recompute=True).write({'product_qty': ZRPHAN})
-                _logger.info("Replaced QTY with EDI Value ZRPHAN")
-            elif pack_operation.remaining_qty*(-1) >= float(ZRPHAN):
-                pack_operation.with_context(no_recompute=True).write({'product_qty': pack_operation.product_qty + float(ZRPHAN)})
-                _logger.info("Added EDI ZRPHAN to QTY from available remaining QTY")
-            else:
-               raise except_orm(_('More delivered than requested!'), _('pack operation %s requested %s, but only %s remained.') % (pack_operation, ZRPHAN, pack_operation.remaining_qty))
-            processed_ids.append(pack_operation.id)
-
-        # delete the others pack operations, they will be included in the backorder
-        unprocessed_ids = self.env['stock.pack.operation'].search(['&', ('picking_id', '=', delivery.id), '!', ('id', 'in', processed_ids)])
-        unprocessed_ids.unlink()
-
+                move_line = delivery.move_lines.filtered(lambda ml: str(int(ml.edi_sequence)) == str(int(ZRZRPR)))
+            
+                if len(move_line.move_line_ids) == 0:
+                    _logger.info("No Pack Operation found for EDI Sequence %s", ZRZRPR)
+                    break
+                try:
+                    move_line.move_line_ids[0].lot_id = self.env['stock.production.lot'].create({'name': str(ZRPTID),'product_id': move_line.product_id.id, 'product_qty': float(ZRPHAN)})
+                except:
+                    _logger.info("Two identitcal products with same lot ID entered!: Combination of Product %s and Lot %s exists already", move_line.product_id.name, ZRPTID)
+                try:
+                    move_line.move_line_ids[0].lot_id.use_date = BBD
+                except:
+                    _logger.info("No Best Before Date")
+                    pass
+                move_line.move_line_ids[0].lot_id.product_qty = float(ZRPHAN)
+                move_line.move_line_ids[0].qty_done = float(ZRPHAN)
+                _logger.info("move_line %d prepared with content: lot %s quantity %d bestbefore %s", int(ZRZRPR), ZRPTID, float(ZRPHAN), str(BBD))
+            
         # execute the transfer of the picking
         delivery.do_transfer()
 
