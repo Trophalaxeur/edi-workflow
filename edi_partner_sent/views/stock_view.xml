@@ -8,7 +8,7 @@
             <field name="inherit_id" ref="stock.vpicktree"/>
             <field name="arch" type="xml">
                 <field name="name" position="after">
-                    <field name="warehouse_sent" string="Warehouse Sent" />
+                    <field name="partner_sent" string="Partner Sent" />
                 </field>
             </field>
         </record>

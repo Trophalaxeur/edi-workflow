@@ -5,7 +5,7 @@ class stock_picking(models.Model):
     _inherit = 'stock.picking'
 
     @api.multi
-    def _function_warehouse_sent_get(self):
+    def _function_partner_sent_get(self):
         edi_db = self.env['edi.tools.edi.document.outgoing']
         flow_db = self.env['edi.tools.edi.flow']
         flow_ids = flow_db.search([
@@ -18,8 +18,9 @@ class stock_picking(models.Model):
                 if not edi_docs:
                     continue
                 edi_docs.sorted(key=lambda x: x.create_date, reverse=True)
-                pick.warehouse_sent = edi_docs[0].create_date
+                pick.partner_sent = edi_docs[0].create_date
+        return pick.partner_sent
 
 
 
-    warehouse_sent = fields.Datetime(compute='_function_warehouse_sent_get', string='Warehouse Sent')
+    partner_sent = fields.Datetime(compute='_function_partner_sent_get', string='Partner Sent')
