@@ -1,6 +1,7 @@
 #import copy
 import logging
 import datetime
+import pytz
 #import json
 
 from odoo import api, _
@@ -13,6 +14,8 @@ _logger = logging.getLogger(__name__)
 class account_invoice(models.Model, EDIMixin):
     _name = "account.invoice"
     _inherit = "account.invoice"
+
+    partner_sent = fields.Datetime(string='Partner Sent')
 
     @api.model
     def valid_for_edi_export_invoice_targo(self, record):
@@ -89,6 +92,9 @@ class account_invoice(models.Model, EDIMixin):
             line_content = label + corp + client + debtor + debtor_type + invoice_name + invoice_date + value_date + amount_total + invoice_type + amount_tax +currency + termcode + termdays + maturity_date + discount_1_perc + discount_1_days + discount_2_perc + discount_2_days + discount_3_perc + discount_3_days + endofmonth + endofmonthdays + transfer_days + dname + dstreet + dzip + dcity + dcountry + finremark + submitter
             edi_doc = edi_doc +line_content + '\n'
             invoice_counter += 1
+
+            #set edi_partner_sent
+            invoice.partner_sent = pytz.utc.localize(datetime.datetime.utcnow())
         
         #append final line
         label = '30'
