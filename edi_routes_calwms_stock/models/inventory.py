@@ -1,5 +1,7 @@
 import datetime
 import logging
+import datetime
+import pytz
 
 from odoo import api, fields, models, _
 from odoo.addons import decimal_precision as dp
@@ -54,25 +56,23 @@ class Inventory(models.Model, EDIMixin):
     def create_inventory(self, param, content):
         # Prepare the call to create an Inventory
         _logger.info('prepping!!')
-        param['name'] = 'Testje'
+        param['name'] = 'Inventory '+str(pytz.utc.localize(datetime.datetime.utcnow()))[:19]
+        param['exhausted'] = 'True'
         iid = self.create(param)
         iid.action_start()
         Product = self.env['product.product']
         for sl in iid.line_ids: 
-        #delivery = self.search([('name', '=', ZNPREF)])
-        #_logger.debug("Delivery found %d (%s)", delivery.id, delivery.name)
             for edi_line in content.splitlines():
                 P2ARID = edi_line[21:35].strip() #Product ID
                 if sl.product_code == P2ARID:
-                    _logger.info('match')
                     P2ACTS = int(edi_line[254:265].strip())
                     sl.product_qty = P2ACTS
                     continue
                 else:
-                    _logger.info('no match on %s and %s', sl.product_code, P2ARID)
+                    P2ACTS = int(edi_line[254:265].strip())
+                    continue
               
-                # map inventory lines to relevant fields
-            _logger.info('finished running through %s', sl.product_code)
+            _logger.debug('finished running through %s', sl.product_code)
             continue
 
         return True
