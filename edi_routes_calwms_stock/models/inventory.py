@@ -61,17 +61,38 @@ class Inventory(models.Model, EDIMixin):
         iid = self.create(param)
         iid.action_start()
         Product = self.env['product.product']
+        Lot = self.env['stock.production.lot']
         for sl in iid.line_ids: 
+            _logger.debug('start lookup %s', sl.product_code)
             for edi_line in content.splitlines():
                 P2ARID = edi_line[21:35].strip() #Product ID
+                if not P2ARID:
+                    _logger.debug('no product in line %s', sl.product_code)
+                    continue
                 if sl.product_code == P2ARID:
+                    _logger.debug('Product match with EDI %s', sl.product_code)
                     P2ACTS = int(edi_line[254:265].strip())
+                    P2PTID = str(edi_line[49:84].strip())
+                    P2VVDT = str(edi_line[135:143].strip())
+                    BBD = P2VVDT[0:4]+'-'+P2VVDT[4:6]+'-'+P2VVDT[6:8]
+                    CurrentLots = Lot.search([('name', '=', P2PTID)])
+                    Match = 0
+                    for CurrentLot in CurrentLots:
+                        if CurrentLot.product_id == sl.product_id and CurrentLot.name == str(P2PTID) and Match == 0:
+                            sl.prod_lot_id = CurrentLot
+                            _logger.debug('Matching lot! %s', sl.product_code)
+                            Match = 1
+                    if Match == 0:
+                        sl.prod_lot_id = Lot.create({'name': str(P2PTID),'product_id': sl.product_id.id, 'product_qty': float(P2ACTS)})
+                        _logger.debug('No matching lot, created lot for %s', sl.product_code)
+                        sl.prod_lot_id.use_date = BBD
                     sl.product_qty = P2ACTS
                     continue
                 else:
                     P2ACTS = int(edi_line[254:265].strip())
+                    _logger.debug('else, no match %s', sl.product_code)
                     continue
-              
+                continue 
             _logger.debug('finished running through %s', sl.product_code)
             continue
 
