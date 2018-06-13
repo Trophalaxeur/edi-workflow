@@ -23,4 +23,4 @@ class stock_picking(models.Model):
 
 
 
-    partner_sent = fields.Datetime(compute='_function_partner_sent_get', string='Partner Sent')
+    partner_sent = fields.Datetime(compute='_function_partner_sent_get', string='Partner Sent', store='True')
