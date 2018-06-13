@@ -65,8 +65,13 @@ class account_invoice(models.Model, EDIMixin):
             termcode = ''.ljust(3)
             if invoice.payment_term_id:
                 termdays = str(invoice.payment_term_id.line_ids[0].days).ljust(3)
+                if invoice.payment_term_id.line_ids[0].option == 'day_after_invoice_date':
+                    endofmonth = '0'
+                else:
+                    endofmonth = '1'
             else:
                 termdays = str("28").ljust(3)
+                endofmonth = '1'
             maturity_date = datetime.datetime.strptime(invoice.date_due, "%Y-%m-%d").strftime("%d%m%Y")
             discount_1_days = str(invoice.partner_id.discount_1_days).ljust(3)
             discount_2_days = str(invoice.partner_id.discount_2_days).ljust(3)
@@ -74,10 +79,6 @@ class account_invoice(models.Model, EDIMixin):
             discount_1_perc = str(invoice.partner_id.discount_1_perc).ljust(7)
             discount_2_perc = str(invoice.partner_id.discount_2_perc).ljust(7)
             discount_3_perc = str(invoice.partner_id.discount_3_perc).ljust(7)
-            if invoice.payment_term_id.line_ids[0].option == 'day_after_invoice_date':
-                endofmonth = '0'
-            else:
-                endofmonth = '1'
             endofmonthdays = '   '
             transfer_days = '   '
             dname = invoice.partner_id.name[:30].ljust(40)
