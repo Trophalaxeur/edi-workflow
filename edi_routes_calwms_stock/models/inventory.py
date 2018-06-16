@@ -38,20 +38,15 @@ class Inventory(models.Model, EDIMixin):
         if not name:
             raise except_orm(_('No Inventory created!'), _('Something went wrong while creating the stock inventory.'))
         
-        edi_db = self.pool.get('edi.tools.edi.document.incoming')
-        edi_db.message_post(cr, uid, document.id, body='Inventory {!s} created'.format(name))
-
         return True
 
     @api.model
     def create_stock_inventory(self, content):
         _logger.info('prepping inventory!')
         param = {}
-        param = self.create_inventory(param, content)
-
-        # Actually create the inventory file
-        so = self.browse([sid])[0]
-        return so.name
+        inv = self.create_inventory(param, content)
+        _logger.info('created inventory! %s', str(inv))
+        return str(inv)
 
     def create_inventory(self, param, content):
         # Prepare the call to create an Inventory
@@ -96,4 +91,4 @@ class Inventory(models.Model, EDIMixin):
             _logger.debug('finished running through %s', sl.product_code)
             continue
 
-        return True
+        return iid.name
