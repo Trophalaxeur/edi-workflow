@@ -2,7 +2,7 @@ import datetime
 import logging
 from odoo import api, _
 from odoo import models, fields
-from odoo.exceptions import except_orm
+from odoo.exceptions import except_orm, ValidationError
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
 from odoo.addons.edi_tools.models.exceptions import EdiIgnorePartnerError, EdiValidationError
 
@@ -119,6 +119,7 @@ class stock_picking(models.Model, EDIMixin):
 
         delivery = self.search([('name', '=', ZNPREF)])
         _logger.debug("Delivery found %d (%s)", delivery.id, delivery.name)
+        Lot = self.env['stock.production.lot']
 
         #processed_ids = []
         for edi_line in content.splitlines():
@@ -128,6 +129,7 @@ class stock_picking(models.Model, EDIMixin):
                 continue
 
             if i > 0:
+                ZRTYPE = edi_line[31:34].strip() #001 for Inbound, 011 for outbound
                 ZRZRPR = edi_line[34:68].strip() #Line Reference
                 ZRARID = edi_line[72:85].strip() #Item Code
                 ZRPTID = edi_line[86:120].strip() #Lot Number
@@ -136,23 +138,35 @@ class stock_picking(models.Model, EDIMixin):
                 BBD = ZRVVDT[0:4]+'-'+ZRVVDT[4:6]+'-'+ZRVVDT[6:8]
 
                 move_line = delivery.move_lines.filtered(lambda ml: str(int(ml.edi_sequence)) == str(int(ZRZRPR)))
-            
+
                 if len(move_line.move_line_ids) == 0:
-                    _logger.info("No Pack Operation found for EDI Sequence %s", ZRZRPR)
+                    _logger.info("No Pack Operation found for EDI Sequence %s, Product %s", ZRZRPR, ZRARID)
+                    msg = "No Pack Operation found for EDI Sequence %s, Product %s" % (ZRZRPR, ZRARID)
+                    raise EdiValidationError(msg)
                     break
-                try:
-                    move_line.move_line_ids[0].lot_id = self.env['stock.production.lot'].create({'name': str(ZRPTID),'product_id': move_line.product_id.id, 'product_qty': float(ZRPHAN)})
-                except:
-                    _logger.info("Two identitcal products with same lot ID entered!: Combination of Product %s and Lot %s exists already", move_line.product_id.name, ZRPTID)
-                try:
-                    move_line.move_line_ids[0].lot_id.use_date = BBD
-                except:
-                    _logger.info("No Best Before Date")
-                    pass
-                move_line.move_line_ids[0].lot_id.product_qty = float(ZRPHAN)
-                move_line.move_line_ids[0].qty_done = float(ZRPHAN)
-                _logger.info("move_line %d prepared with content: lot %s quantity %d bestbefore %s", int(ZRZRPR), ZRPTID, float(ZRPHAN), str(BBD))
-            
+                if ZRTYPE == '001': #Inbound Only
+                    CurrentLots = Lot.search([('name', '=', str(ZRPTID))])
+                    Match = 0
+                    for CurrentLot in CurrentLots:
+                        if CurrentLot.product_id == move_line.product_id and CurrentLot.name == str(ZRPTID) and Match == 0:
+                            _logger.debug('Existing lot %s for product! %s', CurrentLot.name, ZRARID)
+                            Match = 1
+                            msg = "Existing lot %s for product! %s" % (CurrentLot.name, ZRARID)
+                            raise EdiValidationError(msg)
+                    if Match == 0:
+                        move_line.move_line_ids[0].lot_id = Lot.create({'name': str(ZRPTID),'product_id': move_line.product_id.id, 'product_qty': float(ZRPHAN)})
+                        _logger.debug('No matching lot, created lot for %s', ZRPHAN)
+                        if ZRPHAN:
+                            move_line.move_line_ids[0].lot_id.use_date = BBD
+                        else:
+                            _logger.info("No Best Before Date")
+                            pass
+                    move_line.move_line_ids[0].lot_id.product_qty = float(ZRPHAN)
+                    _logger.info("move_line %d prepared with content: lot %s quantity %d bestbefore %s", int(ZRZRPR), ZRPTID, float(ZRPHAN), str(BBD))
+                else:
+                    move_line.move_line_ids[0].qty_done = float(ZRPHAN)
+                    _logger.info("move_line %d prepared with content: product %s quantity %s",ZRARID,str(ZRPHAN))
+
         # execute the transfer of the picking
         delivery.do_transfer()
 
