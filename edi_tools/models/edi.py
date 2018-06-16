@@ -587,14 +587,17 @@ class edi_tools_edi_document_incoming(models.Model):
                 self.write({ 'state' : 'processed', 'processed' : True })
             except Exception as e:
                 document.message_post(body='Error occurred during processing, error given: {!s}'.format(str(e)))
-                self.write({ 'state' : 'processed' })
+                self.state = 'in_error'
+                self.write({ 'state' : 'in_error' })
+                return True
+                continue
             if result:
                 document.message_post(body='EDI Document successfully processed.')
                 self.write({ 'state' : 'processed', 'processed' : True })
             else:
                 document.message_post(body='Error occurred during processing, the action was not completed.')
-                self.write({ 'state' : 'processed' })
-
+                self.write({ 'state' : 'in_error' })
+            _logger.debug("Document %s Processed with state %s", str(document.id), str(document.state))
             return True
 
     @api.multi
