@@ -19,8 +19,8 @@ class stock_picking(models.Model, EDIMixin):
     #Export Section
     @api.model
     def valid_for_edi_export_calwms(self, record):
-#        if record.state != 'assigned':
-#            return False
+        if record.state == 'cancel':
+            return False
         return True
 
     @api.multi
@@ -41,7 +41,6 @@ class stock_picking(models.Model, EDIMixin):
     def edi_export_calwms(self, delivery, edi_struct=None):
         co_id = 1
         d = datetime.datetime.strptime(delivery.scheduled_date, "%Y-%m-%d %H:%M:%S")
-        #V08 : d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
         edi_doc = ''
         picking_type = delivery.picking_type_id.code #incoming outgoing internal
         # Basic header fields
@@ -111,63 +110,76 @@ class stock_picking(models.Model, EDIMixin):
     def edi_import_calwms(self, document):
         content = document.content
         i = 0
-        #import pdb; pdb.set_trace()
         for lin in content.splitlines():
             if i == 0:
                 ZNPREF = lin[30:64].strip()
                 break
 
+        
         delivery = self.search([('name', '=', ZNPREF)])
         _logger.debug("Delivery found %d (%s)", delivery.id, delivery.name)
         Lot = self.env['stock.production.lot']
 
         #processed_ids = []
-        for edi_line in content.splitlines():
-            # map line to relevant fields
-            if i == 0:
-                i += 1
-                continue
+        if delivery.state == 'done':
+            _logger.debug("Delivery %s in status Done, skipping processing")
+        
+        else:
+            for edi_line in content.splitlines():
+                # map line to relevant fields
+                if i == 0:
+                    i += 1
+                    continue
 
-            if i > 0:
-                ZRTYPE = edi_line[31:34].strip() #001 for Inbound, 011 for outbound
-                ZRZRPR = edi_line[34:68].strip() #Line Reference
-                ZRARID = edi_line[72:85].strip() #Item Code
-                ZRPTID = edi_line[86:120].strip() #Lot Number
-                ZRVVDT = edi_line[144:152].strip() #Minimal BBD
-                ZRPHAN = edi_line[290:295].strip() #QTY Delivered in SKU
-                BBD = ZRVVDT[0:4]+'-'+ZRVVDT[4:6]+'-'+ZRVVDT[6:8]
+                if i > 0:
+                    ZRTYPE = edi_line[31:34].strip() #001 for Inbound, 011 for outbound
+                    ZRZRPR = edi_line[34:68].strip() #Line Reference
+                    ZRARID = edi_line[72:85].strip() #Item Code
+                    ZRPTID = edi_line[86:120].strip() #Lot Number
+                    ZRVVDT = edi_line[144:152].strip() #Minimal BBD
+                    ZRPHAN = edi_line[290:295].strip() #QTY Delivered in SKU
+                    BBD = ZRVVDT[0:4]+'-'+ZRVVDT[4:6]+'-'+ZRVVDT[6:8]
+                    AssignLot = False
 
-                move_line = delivery.move_lines.filtered(lambda ml: str(int(ml.edi_sequence)) == str(int(ZRZRPR)))
-
-                if len(move_line.move_line_ids) == 0:
-                    _logger.info("No Pack Operation found for EDI Sequence %s, Product %s", ZRZRPR, ZRARID)
-                    msg = "No Pack Operation found for EDI Sequence %s, Product %s" % (ZRZRPR, ZRARID)
-                    raise EdiValidationError(msg)
-                    break
-                if ZRTYPE == '001': #Inbound Only
-                    CurrentLots = Lot.search([('name', '=', str(ZRPTID))])
-                    Match = 0
-                    for CurrentLot in CurrentLots:
-                        if CurrentLot.product_id == move_line.product_id and CurrentLot.name == str(ZRPTID) and Match == 0:
-                            _logger.debug('Existing lot %s for product! %s', CurrentLot.name, ZRARID)
-                            Match = 1
-                            msg = "Existing lot %s for product! %s" % (CurrentLot.name, ZRARID)
-                            raise EdiValidationError(msg)
-                    if Match == 0:
-                        move_line.move_line_ids[0].lot_id = Lot.create({'name': str(ZRPTID),'product_id': move_line.product_id.id, 'product_qty': float(ZRPHAN)})
-                        _logger.debug('No matching lot, created lot for %s', ZRPHAN)
-                        if ZRPHAN:
-                            move_line.move_line_ids[0].lot_id.use_date = BBD
-                        else:
-                            _logger.info("No Best Before Date")
-                            pass
-                    move_line.move_line_ids[0].lot_id.product_qty = float(ZRPHAN)
-                    _logger.info("move_line %d prepared with content: lot %s quantity %d bestbefore %s", int(ZRZRPR), ZRPTID, float(ZRPHAN), str(BBD))
-                else:
-                    move_line.move_line_ids[0].qty_done = float(ZRPHAN)
-                    _logger.info("move_line %d prepared with content: product %s quantity %s",ZRARID,str(ZRPHAN))
-
-        # execute the transfer of the picking
-        delivery.do_transfer()
-
+                    move_line = delivery.move_lines.filtered(lambda ml: str(int(ml.edi_sequence)) == str(int(ZRZRPR)))
+                    
+                    if len(move_line.move_line_ids) == 0:
+                        move_line.quantity_done = float(ZRPHAN)
+                        _logger.info("No Pack Operation found for EDI Sequence %s, Product %s... creating", ZRZRPR, ZRARID)
+                     
+                    if not move_line.move_line_ids[0].lot_id:
+                        #force lot assignment
+                        _logger.debug('No Lot Was Assigned to move_line, Assigning')
+                        AssignLot = True
+                    
+                    if ZRTYPE == '001' or AssignLot: #Inbound Only, or when creating a new move_line_id
+                        CurrentLots = Lot.search([('name', '=', str(ZRPTID))])
+                        Match = 0
+                        for CurrentLot in CurrentLots:
+                            if CurrentLot.product_id == move_line.product_id and CurrentLot.name == str(ZRPTID) and Match == 0:
+                                _logger.debug('Existing lot %s for product! %s', CurrentLot.name, ZRARID)
+                                Match = 1
+                                move_line.move_line_ids[0].lot_id = CurrentLot
+                                move_line.qty_done = float(ZRPHAN)
+                                move_line._quantity_done_set()
+                        if Match == 0:
+                            move_line.move_line_ids[0].lot_id = Lot.create({'name': str(ZRPTID),'product_id': move_line.product_id.id})
+                            _logger.debug('No matching lot, created lot for %s', ZRPHAN)
+                            if ZRPHAN:
+                                move_line.move_line_ids[0].lot_id.use_date = BBD
+                            else:
+                                _logger.info("No Best Before Date")
+                                pass
+                        move_line.move_line_ids[0].qty_done = float(ZRPHAN)
+                        _logger.info("move_line %d prepared with content: lot %s quantity %d bestbefore %s", int(ZRZRPR), ZRPTID, float(ZRPHAN), str(BBD))
+                    else:
+                        move_line.move_line_ids[0].qty_done = float(ZRPHAN)
+                        _logger.info("move_line %d prepared with content: product %s quantity %s",int(ZRZRPR),ZRARID,str(ZRPHAN))
+                    
+            # execute the transfer of the picking
+            delivery.action_done()
+        backorder = self.search([('backorder_id', '=', delivery.id)])
+        if backorder:
+            backorder.action_cancel()
+            _logger.info("Backorder %s Cancelled.", str(backorder.name))
         return True
