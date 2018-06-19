@@ -59,7 +59,10 @@ class account_invoice(models.Model, EDIMixin):
             value_date = datetime.datetime.strptime(invoice.date_invoice, "%Y-%m-%d").strftime("%d%m%Y")
             amount_total = str(('%.2f' % invoice.amount_total).replace('.',',')).rjust(14)
             grand_total += invoice.amount_total
-            invoice_type = '+' #+ for invoices, - for credit notes 
+            if invoice.type == 'out_invoice':
+                invoice_type = '+' #+ for invoices, - for credit notes 
+            else:
+                invoice_type = '-'
             amount_tax = str(('%.2f' % invoice.amount_tax).replace('.',',')).rjust(14)
             currency = invoice.currency_id.name
             termcode = ''.ljust(3)
