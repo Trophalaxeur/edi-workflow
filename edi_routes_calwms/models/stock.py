@@ -88,7 +88,7 @@ class stock_picking(models.Model, EDIMixin):
             edi_doc = edi_doc +line_content + '\n'
 
         #remove illegal characters
-        edi_doc = edi_doc.replace('ä', 'a').replace('Ä', 'A').replace('ö', 'o').replace('Ö', 'O').replace('ü', 'u').replace('Ü', 'U').replace('ß', 's').replace('ç', 'c').replace('Ç', 'C').replace('â', 'a').replace('Ğ', 'G').replace('ğ', 'g').replace('İ', 'I').replace('î', 'i').replace('Ş', 'S').replace('ş', 's')
+        edi_doc = edi_doc.replace('ä', 'a').replace('Ä', 'A').replace('ö', 'o').replace('Ö', 'O').replace('ü', 'u').replace('Ü', 'U').replace('ß', 's').replace('ç', 'c').replace('Ç', 'C').replace('â', 'a').replace('Ğ', 'G').replace('ğ', 'g').replace('İ', 'I').replace('î', 'i').replace('Ş', 'S').replace('ş', 's').replace('´', ' ')
         
         # Return the result
         return edi_doc
