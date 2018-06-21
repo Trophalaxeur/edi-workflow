@@ -72,16 +72,29 @@ class Inventory(models.Model, EDIMixin):
                     BBD = P2VVDT[0:4]+'-'+P2VVDT[4:6]+'-'+P2VVDT[6:8]
                     CurrentLots = Lot.search([('name', '=', P2PTID)])
                     Match = 0
+                    #first we check if the lot mentioned in the EDI file exists in Odoo
                     for CurrentLot in CurrentLots:
+                        #for lots in Odoo with the name from the EDI file, find the one with the matching product.
                         if CurrentLot.product_id == sl.product_id and CurrentLot.name == str(P2PTID) and Match == 0:
-                            sl.prod_lot_id = CurrentLot
-                            _logger.debug('Matching lot! %s', sl.product_code)
                             Match = 1
+                            _logger.debug('Matching lot! %s', sl.product_code)
+                            #if the lot exists, check if it is the one mentioned in the inventory line and adjust it's quantity.
+                            if sl.prod_lot_id == CurrentLot:
+                                sl.product_qty = P2ACTS
+                                break
+                            #if there is no lot mentioned on the inventory line, assign the lot from EDI to it.
+                            if not sl.prod_lot_id:
+                                sl.prod_lot_id = CurrentLot
+                                sl.product_qty = P2ACTS
+                            
+                    #if the lot from the EDI does not exist in Odoo we create it and link it to the inventory line 
                     if Match == 0:
                         sl.prod_lot_id = Lot.create({'name': str(P2PTID),'product_id': sl.product_id.id, 'product_qty': float(P2ACTS)})
                         _logger.debug('No matching lot, created lot for %s', sl.product_code)
                         sl.prod_lot_id.use_date = BBD
-                    sl.product_qty = P2ACTS
+                        sl.product_qty = P2ACTS
+                    
+                  
                     continue
                 else:
                     P2ACTS = int(edi_line[254:265].strip())
