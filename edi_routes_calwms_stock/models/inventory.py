@@ -59,6 +59,8 @@ class Inventory(models.Model, EDIMixin):
         Lot = self.env['stock.production.lot']
         for sl in iid.line_ids: 
             _logger.debug('start lookup %s', sl.product_code)
+            if sl.package_id:
+                continue
             for edi_line in content.splitlines():
                 P2ARID = edi_line[21:35].strip() #Product ID
                 if not P2ARID:
