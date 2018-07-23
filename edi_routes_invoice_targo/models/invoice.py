@@ -103,7 +103,7 @@ class account_invoice(models.Model, EDIMixin):
         
         #append final line
         label = '30'
-        grand_total = str(grand_total).replace('.',',')
+        grand_total = str('%.2f' % grand_total).replace('.',',')
         footer = label + corp + client + ''.ljust(11) + str(invoice_counter).ljust(26) + grand_total.ljust(218) + submitter
         edi_doc = edi_doc + footer + '\n'
 
