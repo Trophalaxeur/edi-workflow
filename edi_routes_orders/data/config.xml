@@ -15,7 +15,7 @@
             <field name="direction">in</field>
             <field name="model">sale.order</field>
             <field name="method">receive_edi_import_orders_d93a</field>
-            <field name="validator">edi_import_orders_d96a_validator</field>
+            <field name="validator">edi_import_orders_d93a_validator</field>
         </record>
     </data>
 </openerp>
