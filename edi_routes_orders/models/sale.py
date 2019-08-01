@@ -21,6 +21,7 @@ class sale_order(osv.Model, EDIMixin):
     _inherit = "sale.order"
 
     def edi_import_orders_d96a_validator(self, cr, uid, ids, context):
+        _logger.info('StartValidatingD96A!!')
         edi_db = self.pool.get('edi.tools.edi.document.incoming')
         document = edi_db.browse(cr, uid, ids, context)
 
@@ -111,6 +112,7 @@ class sale_order(osv.Model, EDIMixin):
             raise EdiValidationError('Could not find field: docdtm.')
 
         # If we get all the way to here, the document is valid
+        _logger.info('validatedD96A!!')
         return True
 
     def receive_edi_import_orders_d93a(self, cr, uid, ids, context=None):
@@ -136,6 +138,7 @@ class sale_order(osv.Model, EDIMixin):
         return self.edi_import_orders_d96a(cr, uid, document, context=context)
 
     def edi_import_orders_d96a(self, cr, uid, document, context=None):
+        _logger.info('importingD96A!!')
         data = json.loads(document.content)
         data = data['message']
         data['partys'] = data['partys'][0]['party']
@@ -148,6 +151,7 @@ class sale_order(osv.Model, EDIMixin):
         return True
 
     def _build_party_header_93a(self, cr, uid, param, data, context=None):
+        _logger.info('prepartyD96A!!')
         partner_db = self.pool.get('res.partner')
         for party in data['partys']:
             if party['qual'] == 'BY':
@@ -182,6 +186,8 @@ class sale_order(osv.Model, EDIMixin):
 
         if 'partner_shipping_id' not in param:
             param['partner_shipping_id'] = param['partner_id']
+        
+        _logger.info('postpartnerD96A!!')
 
         return param
 
@@ -235,6 +241,7 @@ class sale_order(osv.Model, EDIMixin):
         return so.name
 
     def create_sale_order_d96a(self, cr, uid, data, context=None):
+        _logger.info('preppingD96A!!')
         param = {}
 
         param = self._build_party_header_96a(cr, uid, param, data, context)
@@ -247,25 +254,32 @@ class sale_order(osv.Model, EDIMixin):
 
     def create_sale_order(self, cr, uid, param, data, context):
         # Prepare the call to create a sale order
+        _logger.info('prepping!!')
         param['origin'] = data['docnum']
         param['picking_policy'] = 'direct'
         #if crossdock order:
         if data['docsrt'] == "50E":
            param['instruction_2'] = 'XDCK'
         #if launch order:
-        if data['docsrt'] == "221":
+        elif data['docsrt'] == "221":
             param['instruction_2'] = 'RMORD'
-        _logger.debug('gogogo')
+        else:
+            param['instruction_2'] = ''
+        _logger.info('gogogo')
         if 'ordertype' in data:
-            _logger.debug('ordertype detected')
+            _logger.info('ordertype detected')
             #if Intake / Shop / Install
             if data['ordertype'] == '77E':
                 param['instruction_2'] = param['instruction_2'] + ' 77E'
             #if Comission
-            if data['ordertype'] == '83E':
+            if data['ordertype'] == '83E' and param['instruction_2']:
+                _logger.info('commission/inst2present')
                 param['instruction_2'] = param['instruction_2'] + ' 83E'
                 param['picking_policy'] = 'one'
-        #if Campaign
+            elif data['ordertype'] == '83E':
+                _logger.info('commission/inst2abscent')
+                param['instruction_2'] = '83E'
+                param['picking_policy'] = 'one'
         #if 'orderrefpd' in data:
         #    param['origin'] = param['origin'] + ' CAMP' + data['orderrefpd']
         param['message_follower_ids'] = False
@@ -274,6 +288,7 @@ class sale_order(osv.Model, EDIMixin):
         param['order_policy'] = 'picking'
         param['carrier_id'] = False
         param['invoice_quantity'] = 'order'
+        _logger.info('setting client_order_ref')
         param['client_order_ref'] = data['docnum']
         
         if 'orderrefct' in data:
@@ -283,50 +298,65 @@ class sale_order(osv.Model, EDIMixin):
         if 'orderrefcr' in data:
             param['instruction_2'] = param['instruction_2'] + ' CR ' +data['orderrefcr']
         
+        _logger.info('no instruction 1 or 2 found')
         requested_date_key = 'deldtm'
         if 'deldtm' not in data:
             requested_date_key = 'latedeldtm'
         param['requested_date'] = data[requested_date_key][:4] + '-' + data[requested_date_key][4:6] + '-' + data[requested_date_key][6:8]
         if is_dst():
             _logger.debug("Delivery calculated in DST")
-            if param['partner_shipping_id'] == 526:
-                param['requested_date'] = param['requested_date'] + ' 04:30:00'
-            if param['partner_shipping_id'] == 560:
-                param['requested_date'] = param['requested_date'] + ' 8:30:00'
-            if param['partner_shipping_id'] == 562:
-                param['requested_date'] = param['requested_date'] + ' 07:30:00'
-            if param['partner_shipping_id'] == 561:
-                param['requested_date'] = param['requested_date'] + ' 08:30:00'
-            if param['partner_shipping_id'] == 570:
-                param['requested_date'] = param['requested_date'] + ' 10:00:00'
+            #if param['partner_shipping_id'] == 526:
+            #    param['requested_date'] = param['requested_date'] + ' 04:30:00'
+            #if param['partner_shipping_id'] == 560:
+            #    param['requested_date'] = param['requested_date'] + ' 8:30:00'
+            #if param['partner_shipping_id'] == 562:
+            #    param['requested_date'] = param['requested_date'] + ' 07:30:00'
+            #if param['partner_shipping_id'] == 561:
+            #    param['requested_date'] = param['requested_date'] + ' 08:30:00'
+            #if param['partner_shipping_id'] == 570:
+            #    param['requested_date'] = param['requested_date'] + ' 10:00:00'
+            param['requested_date'] = param['requested_date'] + ' 08:30:00'
         else:
-            _logger.debug("Delivery calculated without DST")
-            if param['partner_shipping_id'] == 526:
-                param['requested_date'] = param['requested_date'] + ' 05:30:00'
-            if param['partner_shipping_id'] == 560:
-                param['requested_date'] = param['requested_date'] + ' 9:30:00'
-            if param['partner_shipping_id'] == 562:
-                param['requested_date'] = param['requested_date'] + ' 08:30:00'
-            if param['partner_shipping_id'] == 561:
-                param['requested_date'] = param['requested_date'] + ' 09:30:00'
-            if param['partner_shipping_id'] == 570:
-                param['requested_date'] = param['requested_date'] + ' 11:00:00'
-
+            #_logger.debug("Delivery calculated without DST")
+            #if param['partner_shipping_id'] == 526:
+            #    param['requested_date'] = param['requested_date'] + ' 05:30:00'
+            #if param['partner_shipping_id'] == 560:
+            #    param['requested_date'] = param['requested_date'] + ' 9:30:00'
+            #if param['partner_shipping_id'] == 562:
+            #    param['requested_date'] = param['requested_date'] + ' 08:30:00'
+            #if param['partner_shipping_id'] == 561:
+            #    param['requested_date'] = param['requested_date'] + ' 09:30:00'
+            #if param['partner_shipping_id'] == 570:
+            #    param['requested_date'] = param['requested_date'] + ' 11:00:00'
+            param['requested_date'] = param['requested_date'] + ' 08:30:00'
         param['message_ids'] = False
         param['note'] = False
         param['project_id'] = False
         param['incoterm'] = False
-        param['section_id'] = False
+        #param['section_id'] = False #section_id van partner_id
+        #param['user_id'] = False #user_id van partner_id
+
+        #resolve IV again
+        #pids = self.pool.get('res.partner').search(cr, uid, [('id', '=', param['partner_invoice_id'])])
+        iv = self.pool.get('res.partner').browse(cr, uid, param['partner_invoice_id'], context)[0]
+        if iv.section_id:
+            param['section_id'] = iv.section_id.id
+        if iv.user_id:
+            param['user_id'] = iv.user_id.id
         fiscal_pos = self.pool.get('account.fiscal.position').browse(cr, uid, param['fiscal_position']) or False
         if 'user_id' not in param:
             param['user_id'] = uid
         elif not param['user_id']:
             param['user_id'] = uid
 
+        _logger.debug("Finished Building Header")
+
         # Create the line items
         product_db = self.pool.get('product.product')
         pricelist_db = self.pool.get('product.pricelist')
         param['order_line'] = []
+
+        _logger.debug("Start Processing Order Lines")
         for line in data['lines']:
 
             pids = product_db.search(cr, uid, [('ean13', '=', line['gtin'])])
@@ -340,6 +370,7 @@ class sale_order(osv.Model, EDIMixin):
 
             # If the price is given from the file, use that
             # Otherwise, use the price from the pricelist
+            _logger.debug("Looking for prices")
             if 'price' in line:
                 detail['price_unit'] = line['price']
             else:
@@ -348,20 +379,30 @@ class sale_order(osv.Model, EDIMixin):
             detail['product_uom_qty'] = line['ordqua']
             detail['customer_product_code'] = False
             # If a description is given from the customer, use that as the product name.
+            _logger.debug("Looking for description for product %s", prod.id)
             if 'desc' in line:
+                _logger.debug("Description Given")
                 detail['name'] = line['desc'] + ' ' + prod.name
             else:
-                detail['name'] = prod.name + ' ' + prod.description_sale
+                _logger.debug("Description from MD")
+                #detail['name'] = prod.name + ' ' + prod.description_sale
+                detail['name'] = prod.name + ' ' + prod.description
+            _logger.debug("Description set")
             detail['delay'] = False
             detail['discount'] = False
             detail['address_allotment_id'] = False
-            detail['th_weight'] = prod.weight * float(line['ordqua'])
+            _logger.debug("Calc Weight")
+            if prod.weight > 0:
+                detail['th_weight'] = prod.weight * float(line['ordqua'])
+            else:
+                detail['th_weight'] = (prod.weight+0.01) * float(line['ordqua'])
             detail['product_uos'] = False
             detail['type'] = 'make_to_stock'
             detail['product_packaging'] = False
 
             # Tax swapping calculations u'tax_id': [[6,False, [1,3] ]],
             detail['tax_id'] = False
+            _logger.debug("Calc Taxes")
             if prod.taxes_id:
                 detail['tax_id'] = [[6, False, []]]
                 if fiscal_pos:
@@ -380,6 +421,7 @@ class sale_order(osv.Model, EDIMixin):
             order_line.extend([False])
             order_line.append(detail)
             param['order_line'].append(order_line)
+            _logger.debug("Line Added !")
 
         return param
 
