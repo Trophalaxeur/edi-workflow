@@ -97,7 +97,7 @@ class stock_picking(osv.Model, EDIMixin):
         d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
 
         edi_doc['message']['pakbonnummer'] = delivery.name
-        edi_doc['message']['desadv_naam']      = delivery.name
+        edi_doc['message']['desadv_naam']      = delivery.desadv_name
         edi_doc['message']['leverplandatum']   = d.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['berichtdatum'] = now.strftime("%Y%m%d%H%M%S")
         edi_doc['message']['klantreferentie'] = delivery.order_reference
@@ -136,6 +136,7 @@ class stock_picking(osv.Model, EDIMixin):
             edi_doc['message']['partys']['party'].append(partner_doc)
 
         partner = self.env['res.partner'].browse(delivery.partner_id.id)
+        picking_partner = partner
         if partner and partner.ref:
             partner_doc = copy.deepcopy(dict(DESADV_PARTY))
             partner_doc['qual'] = 'DP'
@@ -221,6 +222,10 @@ class stock_picking(osv.Model, EDIMixin):
                         line_segment["suart"] = bomproduct.name
                         line_segment["desc"] = bomproduct.description[:35]
                         line_segment["gtin"] = bomproduct.ean13
+                        for customer_id in bomproduct.customer_ids:
+                            if customer_id.name.id == order.partner_shipping_id.id or customer_id.name.id == order.partner_shipping_id.parent_id.id:
+                                _logger.info("found customer product reference")
+                                line_segment["byart"] = customer_id.product_code
                         line_segment["delqua"] = int(quant.qty)*int(bom.product_qty)
                         line_segment["ucgln"] = order.partner_id.ref
                         line_segment["ucorder"] = order.origin
@@ -233,6 +238,10 @@ class stock_picking(osv.Model, EDIMixin):
                     line_segment["suart"] = product.name
                     line_segment["desc"] = product.description[:35]
                     line_segment["gtin"] = product.ean13
+                    for customer_id in product.customer_ids:
+                        if customer_id.name.id == order.partner_shipping_id.id or customer_id.name.id == order.partner_shipping_id.parent_id.id:
+                            _logger.info("found customer product reference")
+                            line_segment["byart"] = customer_id.product_code
                     line_segment["delqua"] = int(quant.qty)
                     line_segment["ucgln"] = order.partner_id.ref
                     line_segment["ucorder"] = order.origin
