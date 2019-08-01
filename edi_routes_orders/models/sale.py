@@ -115,6 +115,10 @@ class sale_order(osv.Model, EDIMixin):
         _logger.info('validatedD96A!!')
         return True
 
+    def edi_import_orders_d93a_validator(self,cr,uid,ids,context=None):
+        _logger.info('VALIDATED')
+        return True
+
     def receive_edi_import_orders_d93a(self, cr, uid, ids, context=None):
         edi_db = self.pool.get('edi.tools.edi.document.incoming')
         document = edi_db.browse(cr, uid, ids, context)
@@ -167,7 +171,7 @@ class sale_order(osv.Model, EDIMixin):
             if party['qual'] == 'PR':
                 pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
                 iv = partner_db.browse(cr, uid, pids, context)[0]
-                param['partner_invoice_id'] = iv.id
+                param['partner_invoice_id'] = iv.parent_id.id
 
             if party['qual'] == 'DP':
                 pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
@@ -193,6 +197,15 @@ class sale_order(osv.Model, EDIMixin):
 
     def _build_party_header_96a(self, cr, uid, param, data, context=None):
         partner_db = self.pool.get('res.partner')
+        override_iv = 0
+        #check for PR partner
+        for party in data['partys']:
+            if party['qual'] == 'PR':
+                pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
+                iv = partner_db.browse(cr, uid, pids, context)[0]
+                param['partner_invoice_id'] = iv.id
+                override_iv = 1
+
         for party in data['partys']:
             if party['qual'] == 'BY':
                 pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
@@ -205,9 +218,12 @@ class sale_order(osv.Model, EDIMixin):
                 fiscal_pos = self.pool.get('account.fiscal.position').browse(cr, uid, buyer.property_account_position.id) or False
 
             if party['qual'] == 'IV':
-                pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
-                iv = partner_db.browse(cr, uid, pids, context)[0]
-                param['partner_invoice_id'] = iv.id
+                if override_iv == 0:
+                    pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
+                    iv = partner_db.browse(cr, uid, pids, context)[0]
+                    param['partner_invoice_id'] = iv.id
+                else:
+                    param['partner_invoice_id'] = iv.id
 
             if party['qual'] == 'DP':
                 pids = partner_db.search(cr, uid, [('ref', '=', party['gln'])])
