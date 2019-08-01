@@ -29,6 +29,7 @@ INVOICE = {
     'FACTUURNAAM': '',
     'ORDERNAAM':'',
     'ORDERSTRAAT': '',  # order.partner_id.street
+    'ORDERSTRAAT2' : '', # order.partner_id.street2
     'ORDERPOSTCODE': '',  # order.partner_id.zip
     'ORDERSTAD': '',  # order.partner_id.city
     'DATUM': '',  # account.invoice:create_date
@@ -97,17 +98,18 @@ class account_invoice(osv.Model, EDIMixin):
         company_db = self.pool.get('res.company')
 
         do_id = pick_db.search(cr, uid, [('name', '=', ref[0])])
-        if not do_id:
-            raise osv.except_osv(_('Warning!'), _("Could not find delivery for invoice: {!s}").format(invoice.number))
-
-        so_id = order_db.search(cr, uid, [('name', '=', pick_db.browse(cr, uid, do_id, context)[0].origin)])
-        if not so_id:
-            raise osv.except_osv(_('Warning!'), _("Could not find order for invoice: {!s}").format(invoice.number))
+        #if not do_id:
+        #    raise osv.except_osv(_('Warning!'), _("Could not find delivery for invoice: {!s}").format(invoice.number))
+        if do_id:
+            so_id = order_db.search(cr, uid, [('name', '=', pick_db.browse(cr, uid, do_id, context)[0].origin)])
+        #if not so_id:
+        #    raise osv.except_osv(_('Warning!'), _("Could not find order for invoice: {!s}").format(invoice.number))
 
         co_id = company_db.search(cr, uid, [])[0]
 
-        delivery = pick_db.browse(cr, uid, do_id, context)[0]
-        order = order_db.browse(cr, uid, so_id, context)[0]
+        if do_id:
+            delivery = pick_db.browse(cr, uid, do_id, context)[0]
+            order = order_db.browse(cr, uid, so_id, context)[0]
         company = company_db.browse(cr, uid, co_id, context)
         now = datetime.datetime.now()
 
@@ -127,44 +129,76 @@ class account_invoice(osv.Model, EDIMixin):
         if partner:
             edi_doc['FACTUURPLAATS'] = partner.ref
             edi_doc['BTWFACTUUR'] = partner.vat
-            edi_doc['ORDERPLAATS'] = order.partner_id.ref
-            edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
-            edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
-            edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
-            edi_doc['ORDERSTAD'] = order.partner_id.city
-            edi_doc['FACTUURNAAM'] = invoice.partner_id.name
-        if company:
-            partner = partner_db.browse(cr, uid, company.partner_id.id, context)
-            if partner:
-                edi_doc['LEVERANCIER'] = partner.ref
-                edi_doc['BTWLEVERANCIER'] = partner.vat
+            if do_id:
                 edi_doc['ORDERPLAATS'] = order.partner_id.ref
                 edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
                 edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
                 edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
                 edi_doc['ORDERSTAD'] = order.partner_id.city
-                edi_doc['FACTUURNAAM'] = invoice.partner_id.name
+            else:
+                edi_doc['ORDERPLAATS'] = invoice.sale_partner_id.ref
+                edi_doc['ORDERNAAM'] = invoice.sale_partner_id.name[:35].upper()
+                edi_doc['ORDERSTRAAT'] = invoice.sale_partner_id.street[:35].upper()
+                edi_doc['ORDERPOSTCODE'] = invoice.sale_partner_id.zip
+                edi_doc['ORDERSTAD'] = invoice.sale_partner_id.city
+            if invoice.partner_id.street2:
+                edi_doc['ORDERSTRAAT2'] = invoice.partner_id.street2[:35].upper()
+            edi_doc['FACTUURNAAM'] = invoice.partner_id.name[:35]
+        if company:
+            partner = partner_db.browse(cr, uid, company.partner_id.id, context)
+            if partner:
+                edi_doc['LEVERANCIER'] = partner.ref
+                edi_doc['BTWLEVERANCIER'] = partner.vat
+                if do_id:
+                    edi_doc['ORDERPLAATS'] = order.partner_id.ref
+                    edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
+                    edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
+                    edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
+                    edi_doc['ORDERSTAD'] = order.partner_id.city
+                else:
+                    edi_doc['ORDERPLAATS'] = invoice.sale_partner_id.ref
+                    edi_doc['ORDERNAAM'] = invoice.sale_partner_id.name[:35].upper()
+                    edi_doc['ORDERSTRAAT'] = invoice.sale_partner_id.street[:35].upper()
+                    edi_doc['ORDERPOSTCODE'] = invoice.sale_partner_id.zip
+                    edi_doc['ORDERSTAD'] = invoice.sale_partner_id.city
+                if invoice.partner_id.street2:
+                    edi_doc['ORDERSTRAAT2'] = invoice.partner_id.street2[:35].upper()
+                edi_doc['FACTUURNAAM'] = invoice.partner_id.name[:35]
 
         # Delivery order fields
-        d = datetime.datetime.strptime(delivery.date_done, "%Y-%m-%d %H:%M:%S")
-        edi_doc['LEVERDATUM'] = d.strftime("%Y%m%d")
-        if delivery.desadv_name:
-            edi_doc['LEVERINGSBON'] = delivery.desadv_name
-        else:
-            edi_doc['LEVERINGSBON'] = delivery.name
+        if do_id:
+            if delivery:
+                d = datetime.datetime.strptime(delivery.date_done, "%Y-%m-%d %H:%M:%S")
+                edi_doc['LEVERDATUM'] = d.strftime("%Y%m%d")
+                if delivery.desadv_name:
+                    edi_doc['LEVERINGSBON'] = delivery.desadv_name
+                else:
+                    edi_doc['LEVERINGSBON'] = delivery.name
 
-        d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
-        edi_doc['LEVERPLANDATUM'] = d.strftime("%Y%m%d")
-        partner = partner_db.browse(cr, uid, delivery.partner_id.id, context)
-        if partner:
-            edi_doc['LEVERPLAATS'] = partner.ref
+                d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
+                edi_doc['LEVERPLANDATUM'] = d.strftime("%Y%m%d")
+                partner = partner_db.browse(cr, uid, delivery.partner_id.id, context)
+                if partner:
+                    edi_doc['LEVERPLAATS'] = partner.ref
+        else:
+            edi_doc['LEVERDATUM'] = now.strftime("%Y%m%d")
+            edi_doc['LEVERINGSBON'] = '00000000'
+            edi_doc['LEVERPLANDATUM'] = now.strftime("%Y%m%d")
+            edi_doc['LEVERPLAATS'] = invoice.sale_partner_id.ref
 
         # Sale order fields
-        d = datetime.datetime.strptime(order.date_order, "%Y-%m-%d %H:%M:%S")
-        edi_doc['REFERENTIEDATUM'] = d.strftime("%Y%m%d")
-        partner = partner_db.browse(cr, uid, order.partner_id.id, context)
-        if partner:
-            edi_doc['AANKOPER'] = partner.ref
+        if do_id:
+            if so_id:
+                if order:
+                    d = datetime.datetime.strptime(order.date_order, "%Y-%m-%d %H:%M:%S")
+                    edi_doc['REFERENTIEDATUM'] = d.strftime("%Y%m%d")
+                    partner = partner_db.browse(cr, uid, order.partner_id.id, context)
+                    if partner:
+                        edi_doc['AANKOPER'] = partner.ref
+        else:
+            edi_doc['REFERENTIEDATUM'] = now.strftime("%Y%m%d")
+            edi_doc['AANKOPER'] = invoice.sale_partner_id.ref
+
 
         # Line items
         for line in invoice.invoice_line:
