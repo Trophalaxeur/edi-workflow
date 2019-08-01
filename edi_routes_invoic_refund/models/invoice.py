@@ -177,7 +177,10 @@ class account_invoice(osv.Model, EDIMixin):
             edi_line = copy.deepcopy(dict(LINE))
             edi_line['ARTIKEL'] = product.ean13
             edi_line['ARTIKELREF'] = product.name
-            edi_line['ARTIKELOMSCHRIJVING'] = product.description_sale[:35].upper()
+            if product.description_sale:
+                edi_line['ARTIKELOMSCHRIJVING'] = product.description_sale[:35].upper()
+            else:
+                edi_line['ARTIKELOMSCHRIJVING'] = line.name
             edi_line['AANTAL'] = line.quantity
             edi_line['AANTALGELEVERD'] = line.quantity
             edi_line['LIJNTOTAAL'] = line.price_subtotal
