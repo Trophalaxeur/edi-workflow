@@ -666,11 +666,14 @@ class edi_tools_edi_document_outgoing(osv.Model):
         vals['flow_id'] = flow.id
 
         if type == 'STRING':
-            vals['name'] = reference.replace("/", "_") + '_' + now.strftime("%d_%m_%Y_%H_%M_%S") + ".json"
+            vals['name'] = reference.replace("/", "_") + '_' + now.strftime("%d_%m_%Y_%H_%M_%S") + ".dat"
             vals['content'] = content
         elif type == 'XML':
             vals['name'] = reference.replace("/", "_") + '_' + now.strftime("%d_%m_%Y_%H_%M_%S") + ".xml"
             vals['content'] = ET.tostring(content, encoding='UTF-8', method='xml')
+        elif type == 'EAZYSTOCK':
+            vals['name'] = reference+'_'+ now.strftime("%Y%m%dT%H%M") + ".txt"
+            vals['content'] = content
         else:
             vals['name'] = reference.replace("/", "_") + '_' + now.strftime("%d_%m_%Y_%H_%M_%S") + ".json"
             vals['content'] = json.dumps(content)
