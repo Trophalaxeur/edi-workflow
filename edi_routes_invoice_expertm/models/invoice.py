@@ -95,12 +95,22 @@ class account_invoice(osv.Model, EDIMixin):
                 else:
 
                     if line.debit != 0:
-                        ET.SubElement(detail, "Amount").text  = ('%.2f' % line.debit).replace('.',',')
-                        ET.SubElement(anal, "Amount").text    = ('%.2f' % line.debit).replace('.',',')
+                        if line.amount_currency != 0.0:
+                            ET.SubElement(detail, "Amount").text  = ('%.2f' % abs(line.amount_currency)).replace('.',',')
+                            ET.SubElement(anal, "Amount").text    = ('%.2f' % abs(line.amount_currency)).replace('.',',')
+                        else:
+                            ET.SubElement(detail, "Amount").text  = ('%.2f' % abs(line.debit)).replace('.',',')
+                            ET.SubElement(anal, "Amount").text    = ('%.2f' % abs(line.debit)).replace('.',',')
+
                         ET.SubElement(detail, "DebCre").text  = '1'
                     else:
-                        ET.SubElement(detail, "Amount").text  = ('%.2f' % line.credit).replace('.',',')
-                        ET.SubElement(anal, "Amount").text    = ('%.2f' % line.credit).replace('.',',')
+                        if line.amount_currency != 0.0:
+                            ET.SubElement(detail, "Amount").text  = ('%.2f' % abs(line.amount_currency)).replace('.',',')
+                            ET.SubElement(anal, "Amount").text    = ('%.2f' % abs(line.amount_currency)).replace('.',',')
+                        else:
+                            ET.SubElement(detail, "Amount").text  = ('%.2f' % abs(line.credit)).replace('.',',')
+                            ET.SubElement(anal, "Amount").text    = ('%.2f' % abs(line.credit)).replace('.',',')
+                            
                         ET.SubElement(detail, "DebCre").text  = '-1'
 
                 ET.SubElement(detail, "Account").text = line.account_id.code
