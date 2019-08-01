@@ -29,6 +29,7 @@ INVOICE = {
     'FACTUURNAAM': '',
     'ORDERNAAM':'',
     'ORDERSTRAAT': '',  # order.partner_id.street
+    'ORDERSTRAAT2': '',  # order.partner_id.street2
     'ORDERPOSTCODE': '',  # order.partner_id.zip
     'ORDERSTAD': '',  # order.partner_id.city
     'DATUM': '',  # account.invoice:create_date
@@ -42,9 +43,14 @@ INVOICE = {
     'AANKOPER': '',  # account.invoice:origin -> sale.order:partner_id -> res.partner:ref
     'LEVERANCIER': '',  # res.company:partner_id -> res.partner:ref  (er is normaal maar 1 company)
     'BTWLEVERANCIER': '',  # res.company:partner_id -> res.partner:vat  (er is normaal maar 1 company)
-    'LEVERPLAATS': '',  # account.invoice:origin -> stock.picking.out:partner_id -> res.partner:ref
+    'LEVERPLAATS': '',    # account.invoice:origin -> stock.picking.out:partner_id -> res.partner:ref
     'FACTUURPLAATS': '',  # account.invoice:partner_id -> res.partner:ref
-    'BTWFACTUUR': '',  # account.invoice:partner_id -> res.partner:vat
+    'FACTUURLAND': '',    #account.invoice:partner_id -> res.partner:country_id: -> res.country:code
+    'FACTUURSTAD': '',
+    'FACTUURPOSTCODE': '',
+    'FACTUURSTRAAT': '',
+    'FACTUURSTRAAT2': '',
+    'BTWFACTUUR': '',     # account.invoice:partner_id -> res.partner:vat
     'VALUTA': 'EUR',
     'LIJNEN': [],
     'FACTUURPERCENTAGE': 0,
@@ -74,6 +80,7 @@ class account_invoice(osv.Model, EDIMixin):
         tax_db = self.pool.get('account.tax')
         product_db = self.pool.get('product.product')
         company_db = self.pool.get('res.company')
+        country_db = self.pool.get('res.country')
 
         do_id = pick_db.search(cr, uid, [('name', '=', ref[0])])
         if not do_id:
@@ -88,6 +95,7 @@ class account_invoice(osv.Model, EDIMixin):
         delivery = pick_db.browse(cr, uid, do_id, context)[0]
         order = order_db.browse(cr, uid, so_id, context)[0]
         company = company_db.browse(cr, uid, co_id, context)
+
         now = datetime.datetime.now()
 
         # Basic header fields
@@ -104,25 +112,44 @@ class account_invoice(osv.Model, EDIMixin):
 
         partner = partner_db.browse(cr, uid, invoice.partner_id.id, context)
         if partner:
+            country = country_db.browse(cr, uid, partner.country_id.id, context)
             edi_doc['FACTUURPLAATS'] = partner.ref
+            edi_doc['FACTUURSTRAAT'] = partner.street[:35].upper()
+            if partner.street2:
+                edi_doc['FACTUURSTRAAT2'] = partner.street2[:35].upper()
             edi_doc['BTWFACTUUR'] = partner.vat
             edi_doc['ORDERPLAATS'] = order.partner_id.ref
             edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
             edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
-            edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
+            if invoice.partner_id.street2:
+                edi_doc['ORDERSTRAAT2'] = invoice.partner_id.street2[:35].upper()
+            if order.partner_id.zip:
+                edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
             edi_doc['ORDERSTAD'] = order.partner_id.city
-            edi_doc['FACTUURNAAM'] = invoice.partner_id.name
+            edi_doc['FACTUURSTAD'] = invoice.partner_id.city
+            if invoice.partner_id.zip:
+                edi_doc['FACTUURPOSTCODE'] = invoice.partner_id.zip
+            edi_doc['FACTUURNAAM'] = invoice.partner_id.name[:35]
+            edi_doc['FACTUURLAND'] = invoice.partner_id.country_id.code
         if company:
             partner = partner_db.browse(cr, uid, company.partner_id.id, context)
             if partner:
+                country = country_db.browse(cr, uid, partner.country_id.id, context)
                 edi_doc['LEVERANCIER'] = partner.ref
                 edi_doc['BTWLEVERANCIER'] = partner.vat
                 edi_doc['ORDERPLAATS'] = order.partner_id.ref
                 edi_doc['ORDERNAAM'] = order.partner_id.name[:35].upper()
                 edi_doc['ORDERSTRAAT'] = order.partner_id.street[:35].upper()
-                edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
+                if invoice.partner_id.street2:
+                    edi_doc['ORDERSTRAAT2'] = invoice.partner_id.street2[:35].upper()
+                if order.partner_id.zip:
+                    edi_doc['ORDERPOSTCODE'] = order.partner_id.zip
                 edi_doc['ORDERSTAD'] = order.partner_id.city
-                edi_doc['FACTUURNAAM'] = invoice.partner_id.name
+                edi_doc['FACTUURNAAM'] = invoice.partner_id.name[:35]
+                edi_doc['FACTUURSTAD'] = invoice.partner_id.city
+                if invoice.partner_id.zip:
+                    edi_doc['FACTUURPOSTCODE'] = invoice.partner_id.zip
+                edi_doc['FACTUURLAND'] = invoice.partner_id.country_id.code
 
         # Delivery order fields
         d = datetime.datetime.strptime(delivery.date_done, "%Y-%m-%d %H:%M:%S")
