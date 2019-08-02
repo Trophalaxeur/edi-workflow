@@ -578,6 +578,9 @@ class edi_tools_edi_document_incoming(models.Model):
         method manually.
         ---------------------------------------------------------- '''
         for document in self:
+            if not document.valid(): 
+                self.write({ 'state' : 'in_error' })
+                return False
             processor = getattr(self.env[document.flow_id.model], document.flow_id.method)
             result = False
             try:
