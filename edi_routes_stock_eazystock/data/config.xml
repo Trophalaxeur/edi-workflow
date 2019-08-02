@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+        <record id="edi_stock_eazystock_out" model="edi.tools.edi.flow">
+            <field name="name">Stock EazyStock(out)</field>
+            <field name="direction">out</field>
+            <field name="model">stock.picking</field>
+            <field name="method">send_edi_export_stock_eazystock</field>
+            <field name="partner_resolver"></field>
+        </record>
+    </data>
+    <data>
+        <record id="edi_stock_partial_eazystock_out" model="edi.tools.edi.flow">
+            <field name="name">Partial Stock EazyStock(out)</field>
+            <field name="direction">out</field>
+            <field name="model">stock.picking</field>
+            <field name="method">send_edi_export_stock_partial_eazystock</field>
+            <field name="partner_resover"></field>
+        </record>
+    </data>
+    <data>
+        <record id="edi_item_md_eazystock_out" model="edi.tools.edi.flow">
+            <field name="name">Item MD EazyStock(out)</field>
+            <field name="direction">out</field>
+            <field name="model">stock.picking</field>
+            <field name="method">send_edi_export_item_md_eazystock</field>
+            <field name="partner_resolver"></field>
+        </record>
+    </data>
+    <data>
+        <record id="edi_inbound_eazystock_out" model="edi.tools.edi.flow">
+            <field name="name">Purchase EazyStock(out)</field>
+            <field name="direction">out</field>
+            <field name="model">stock.picking</field>
+            <field name="method">send_edi_export_inbound_eazystock</field>
+            <field name="partner_resolver"></field>
+        </record>
+    </data>
+    <data>
+        <record id="view_location_form_eazystock" model="ir.ui.view">
+            <field name="name">view.location.form.eazystock</field>
+            <field name="model">stock.location</field>
+            <field name="type">form</field>
+            <field name="inherit_id" ref="stock.view_location_form"/>
+            <field name="arch" type="xml">
+		<xpath expr="//field[@name='loc_barcode']" position="after">
+			<field name="eazystock_code" string="Eazystock Code" />
+			<field name="eazystock_enabled" string="Eazystock Enabled" />
+			<field name="eazystock_supplier" string="Eazystock Supplier Override" />
+		</xpath>
+            </field>
+        </record>
+    </data>
+</openerp>
