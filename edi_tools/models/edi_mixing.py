@@ -45,7 +45,9 @@ def last_update_for(record):
     """
     if record._log_access:
         record_log = record.get_metadata()[0]
-        return record_log.get('write_date') or record_log.get('create_date') or False
+        result = record_log.get('write_date') or record_log.get('create_date') or False
+        if result:
+            return result.strftime("%Y%m%d%H%M%S")
     return False
 
 
@@ -260,6 +262,8 @@ class EDIMixin(object):
                     value = self.edi_m2m(value)
                 elif field.type == 'one2many':
                     value = self.edi_o2m(value, edi_struct=edi_struct.get(field_name, {}))
+                elif field.type == 'datetime':
+                    value = value.strftime("%Y%m%d%H%M%S")
                 edi_dict[field_name] = value
             results.append(edi_dict)
         return results

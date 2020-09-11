@@ -7,7 +7,7 @@ import logging
 from openerp import api, _
 from openerp.osv import osv, fields
 from openerp.exceptions import except_orm
-from openerp.addons.edi import EDIMixin
+from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
 
 _logger = logging.getLogger(__name__)
 

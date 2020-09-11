@@ -4,7 +4,7 @@ import json
 
 from openerp import api, _
 from openerp.osv import osv
-from openerp.addons.edi import EDIMixin
+from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
 from openerp.addons.edi_tools.models.exceptions import EdiValidationError
 
 import re
