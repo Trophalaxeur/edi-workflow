@@ -184,7 +184,7 @@ class account_invoice(osv.Model, EDIMixin):
                 for bom in product.bom_ids[0].bom_line_ids:
                     bomproduct = product_db.browse(cr, uid, bom.product_id.id, context)
                     edi_line = copy.deepcopy(dict(LINE))
-                    edi_line['ARTIKEL'] = bomproduct.ean13
+                    edi_line['ARTIKEL'] = bomproduct.barcode
                     edi_line['ARTIKELREF'] = bomproduct.name
                     edi_line['ARTIKELOMSCHRIJVING'] = bomproduct.description_sale[:35].upper()
                     edi_line['AANTAL'] = line.quantity*bom.product_qty
@@ -219,7 +219,7 @@ class account_invoice(osv.Model, EDIMixin):
                     edi_doc['LIJNEN'].append(edi_line)
             else:
                 edi_line = copy.deepcopy(dict(LINE))
-                edi_line['ARTIKEL'] = product.ean13
+                edi_line['ARTIKEL'] = product.barcode
                 edi_line['ARTIKELREF'] = product.name
                 edi_line['ARTIKELOMSCHRIJVING'] = product.description_sale[:35].upper()
                 edi_line['AANTAL'] = line.quantity

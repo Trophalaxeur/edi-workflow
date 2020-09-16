@@ -171,7 +171,7 @@ class stock_picking(osv.Model, EDIMixin):
                         bomproduct = product_db.browse(cr, uid, bom.product_id.id, context)
                         line_segment = {}
                         line_segment["num"] = line_counter
-                        line_segment["gtin"] = bomproduct.ean13
+                        line_segment["gtin"] = bomproduct.barcode
                         line_segment["delqua"] = int(quant.qty)*int(bom.product_qty)
                         line_segment["ucgln"] = order.partner_id.ref
                         line_segment["ucorder"] = order.origin
@@ -181,7 +181,7 @@ class stock_picking(osv.Model, EDIMixin):
                 else:
                     _logger.info("no bom product or no bomified order, appending product to EDI doc")
                     line_segment["num"] = line_counter
-                    line_segment["gtin"] = product.ean13
+                    line_segment["gtin"] = product.barcode
                     line_segment["delqua"] = int(quant.qty)
                     line_segment["ucgln"] = order.partner_id.ref
                     line_segment["ucorder"] = order.origin

@@ -193,7 +193,7 @@ class stock_picking(osv.Model, EDIMixin):
                 order = order_db.browse(cr, uid, so_ids, context)
                 dtm = datetime.datetime.strptime(order.date_order, "%Y-%m-%d %H:%M:%S")
                 line_segment["num"] = line_counter
-                line_segment["gtin"] = product.ean13
+                line_segment["gtin"] = product.barcode
                 line_segment["delqua"] = int(quant.qty)
                 line_segment["ucgln"] = order.partner_id.ref
                 line_segment["ucorder"] = order.origin

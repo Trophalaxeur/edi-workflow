@@ -23,6 +23,6 @@ class edi_tools_edi_wizard_archive_incoming(models.TransientModel):
             # ------------------------------
             for document in self.env['edi.tools.edi.document.incoming'].browse(ids):
                 if document.state in ['new','ready','processed','in_error']:
-                    document.button_to_archived()
+                    document.action_archive()
             return {'type': 'ir.actions.act_window_close'}
 

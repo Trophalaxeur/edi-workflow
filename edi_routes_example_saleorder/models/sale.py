@@ -39,16 +39,17 @@ class SaleOrder(models.Model):
         document = self.env['edi.tools.edi.document.incoming'].browse(document_id)
 
         try:
-            data = json.loads(document.content)
+            datas = json.loads(document.content)
         except Exception as e:
             raise EdiValidationError('Content is not valid JSON. %s' % (e))
 
-        for line in data.get('lines', []):
-            if not line.get('ean13'):
-                raise EdiValidationError('EAN13 missing on line')
-            product = self.env['product.product'].search([('ean13', '=', line.get('ean13'))], limit=1)
-            if not product:
-                raise EdiValidationError('There is no product with ean13 number %s' % (line.get('ean13')))
+        # for line in datas.get('lines', []):
+        #     if not line.get('ean13'):
+        #         raise EdiValidationError('EAN13 missing on line')
+        #     product = self.env['product.product'].search([('barcode', '=', line.get('ean13'))], limit=1)
+        #     if not product:
+        #         raise EdiValidationError('There is no product with ean13/barcode number %s' % (line.get('ean13')))
+        return True
 
     @api.model
     def receive_edi_import_example_saleorder(self, document_id):
@@ -67,10 +68,10 @@ class SaleOrder(models.Model):
         }
 
         for line in data['lines']:
-            product = self.env['product.product'].search([('ean13', '=', line['ean13'])], limit=1)
+
+            product = self.env['product.product'].search([('barcode', '=', line['ean13'])], limit=1)
 
             line_params = {
-                'product_uos_qty' : line['quantity'],
                 'product_uom_qty' : line['quantity'],
                 'product_id'      : product.id,
                 'price_unit'      : product.list_price,

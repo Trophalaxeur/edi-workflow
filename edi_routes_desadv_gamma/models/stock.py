@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 
 DESADV_LINE = {
     'lijnnummer': '',    #incrementing value
-    'ean': '',           #stock.move:product_id -> product.product:ean13
+    'ean': '',           #stock.move:product_id -> product.product:barcode
     'aantal': '',        #stock.move:product_qty
 }
 
@@ -220,7 +220,7 @@ class stock_picking(osv.Model, EDIMixin):
                         line_segment["num"] = line_counter
                         line_segment["suart"] = bomproduct.name
                         line_segment["desc"] = bomproduct.description[:35]
-                        line_segment["gtin"] = bomproduct.ean13
+                        line_segment["gtin"] = bomproduct.barcode
                         line_segment["delqua"] = int(quant.qty)*int(bom.product_qty)
                         line_segment["ucgln"] = order.partner_id.ref
                         line_segment["ucorder"] = order.origin
@@ -232,7 +232,7 @@ class stock_picking(osv.Model, EDIMixin):
                     line_segment["num"] = line_counter
                     line_segment["suart"] = product.name
                     line_segment["desc"] = product.description[:35]
-                    line_segment["gtin"] = product.ean13
+                    line_segment["gtin"] = product.barcode
                     line_segment["delqua"] = int(quant.qty)
                     line_segment["ucgln"] = order.partner_id.ref
                     line_segment["ucorder"] = order.origin

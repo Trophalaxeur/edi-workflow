@@ -180,7 +180,7 @@ class account_invoice(osv.Model, EDIMixin):
                 continue
 
             edi_line = copy.deepcopy(dict(LINE))
-            edi_line['ARTIKEL'] = product.ean13
+            edi_line['ARTIKEL'] = product.barcode
             edi_line['ARTIKELREF'] = product.name
             edi_line['ARTIKELOMSCHRIJVING'] = product.description_sale[:35].upper()
             edi_line['AANTAL'] = line.quantity

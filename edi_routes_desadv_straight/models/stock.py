@@ -13,7 +13,7 @@ _logger = logging.getLogger(__name__)
 
 DESADV_LINE = {
     'lijnnummer': '',    #incrementing value
-    'ean': '',           #stock.move:product_id -> product.product:ean13
+    'ean': '',           #stock.move:product_id -> product.product:barcode
     'aantal': '',        #stock.move:product_qty
 }
 
@@ -130,7 +130,7 @@ class stock_picking(osv.Model, EDIMixin):
             product = self.env['product.product'].browse(line.product_id.id)
             edi_line = copy.deepcopy(dict(DESADV_LINE))
             edi_line['lijnnummer'] = line_counter
-            edi_line['ean']        = product.ean13
+            edi_line['ean']        = product.barcode
             edi_line['aantal']     = int(line.product_uom_qty)
 
             line_counter = line_counter + 1
