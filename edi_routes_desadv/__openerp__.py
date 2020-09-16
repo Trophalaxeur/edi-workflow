@@ -9,7 +9,7 @@
         'edi_tools',
         'edi_stock_enable',
         'stock',
-        'sale_stock_reference_chainer',
+        'delivery',
     ],
     'data': [
         'views/stock_view.xml',

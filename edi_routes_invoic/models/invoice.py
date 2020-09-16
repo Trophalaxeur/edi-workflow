@@ -1,12 +1,15 @@
 import copy
 import datetime
 import json
+import logging
+
 
 from openerp import api, _
 from openerp.osv import osv
+from odoo.exceptions import UserError
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
 from openerp.addons.edi_tools.models.exceptions import EdiValidationError
-
+LOGGER = logging.getLogger(__name__)
 
 LINE = {
     'ARTIKEL': '',  # account.invoice.line:product_id -> product.product:ean13
@@ -39,7 +42,7 @@ INVOICE = {
     'KLANTREFERENTIE': '',  # account.invoice:name
     'REFERENTIEDATUM': '',  # account.invoice:origin -> sale.order:date_order
     'LEVERINGSBON': '',  # account.invoice:origin -> stock.picking.out:name
-    'LEVERPLANDATUM': '',  # account.invoice:origin -> stock.picking.out:min_date
+    'LEVERPLANDATUM': '',  # account.invoice:origin -> stock.picking.out:scheduled_date
     'AANKOPER': '',  # account.invoice:origin -> sale.order:partner_id -> res.partner:ref
     'LEVERANCIER': '',  # res.company:partner_id -> res.partner:ref  (er is normaal maar 1 company)
     'BTWLEVERANCIER': '',  # res.company:partner_id -> res.partner:vat  (er is normaal maar 1 company)
@@ -74,57 +77,51 @@ class account_invoice(osv.Model, EDIMixin):
         valid_invoices = self.filtered(self.valid_for_edi_export_invoic)
         invalid_invoices = [p for p in self if p not in valid_invoices]
         if invalid_invoices:
-            raise except_orm(_('Invalid pickings in selection!'), _('The following pickings are invalid, please remove from selection. %s') % (map(lambda record: record.name, invalid_invoices)))
+            raise UserError(_('The following pickings are invalid, please remove from selection. %s') % (map(lambda record: record.name, invalid_invoices)))
 
         for invoice in valid_invoices:
             content = invoice.edi_export_invoic(invoice, None)
             result = self.env['edi.tools.edi.document.outgoing'].create_from_content(invoice.number, content, partner_id.id, 'account.invoice', 'send_edi_export_invoic', type='json')
             if not result:
-                raise except_orm(_('EDI creation failed!', _('EDI processing failed for the following invoice %s') % (invoice.number)))
+                raise UserError(_('EDI processing failed for the following invoice %s') % (invoice.number))
 
         return True
 
-    @api.cr_uid_context
-    def edi_export_invoic(self, cr, uid, invoice, edi_struct=None, context=None):
+    def edi_export_invoic(self, invoice, edi_struct=None, context=None):
         # Instantiate variables
         edi_doc = copy.deepcopy(dict(INVOICE))
 
-        ref = invoice.origin.partition(':')
-        pick_db = self.pool.get('stock.picking')
-        order_db = self.pool.get('sale.order')
-        partner_db = self.pool.get('res.partner')
-        tax_db = self.pool.get('account.tax')
-        product_db = self.pool.get('product.product')
-        company_db = self.pool.get('res.company')
+        # ref = invoice.origin.partition(':')
+        pick_db = self.env['stock.picking']
+        order_db = self.env['sale.order']
+        partner_db = self.env['res.partner']
+        tax_db = self.env['account.tax']
+        product_db = self.env['product.product']
+        company_db = self.env['res.company']
 
-        do_id = pick_db.search(cr, uid, [('name', '=', ref[0])])
-        if not do_id:
+        delivery = pick_db.search([('origin', '=', invoice.origin)])
+        if not delivery:
             raise osv.except_osv(_('Warning!'), _("Could not find delivery for invoice: {!s}").format(invoice.number))
-
-        so_id = order_db.search(cr, uid, [('name', '=', pick_db.browse(cr, uid, do_id, context)[0].origin)])
-        if not so_id:
+        order = order_db.search([('name', '=', invoice.origin)])
+        if not order:
             raise osv.except_osv(_('Warning!'), _("Could not find order for invoice: {!s}").format(invoice.number))
+        company = company_db.search([])[0]
 
-        co_id = company_db.search(cr, uid, [])[0]
-
-        delivery = pick_db.browse(cr, uid, do_id, context)[0]
-        order = order_db.browse(cr, uid, so_id, context)[0]
-        company = company_db.browse(cr, uid, co_id, context)
         now = datetime.datetime.now()
 
         # Basic header fields
         # -------------------
         edi_doc['FACTUURNUMMER'] = invoice.number
         edi_doc['DATUM'] = now.strftime("%Y%m%d")
-        edi_doc['FACTUURDATUM'] = invoice.date_invoice.replace('-', '')
-        edi_doc['VERVALDATUM'] = invoice.date_due.replace('-', '')
+        edi_doc['FACTUURDATUM'] = invoice.date_invoice.strftime("%Y%m%d")
+        edi_doc['VERVALDATUM'] = invoice.date_due.strftime("%Y%m%d")
         edi_doc['KLANTREFERENTIE'] = invoice.name[:17]
         edi_doc['FACTUURTOTAAL'] = invoice.amount_total
         edi_doc['FACTUURSUBTOTAAL'] = invoice.amount_untaxed
 
         # edi_doc['TOTAALBTW'] = float('%.2f' % ((invoice.amount_untaxed + edi_doc['BEBATTOTAAL'] + edi_doc['RECUPELTOTAAL'])
 
-        partner = partner_db.browse(cr, uid, invoice.partner_id.id, context)
+        partner = partner_db.browse(invoice.partner_id.id, context)
         if partner:
             edi_doc['FACTUURPLAATS'] = partner.ref
             edi_doc['BTWFACTUUR'] = partner.vat
@@ -137,7 +134,7 @@ class account_invoice(osv.Model, EDIMixin):
             edi_doc['ORDERSTAD'] = order.partner_id.city
             edi_doc['FACTUURNAAM'] = invoice.partner_id.name[:35]
         if company:
-            partner = partner_db.browse(cr, uid, company.partner_id.id, context)
+            partner = partner_db.browse(company.partner_id.id, context)
             if partner:
                 edi_doc['LEVERANCIER'] = partner.ref
                 edi_doc['BTWLEVERANCIER'] = partner.vat
@@ -151,29 +148,26 @@ class account_invoice(osv.Model, EDIMixin):
                 edi_doc['FACTUURNAAM'] = invoice.partner_id.name[:35]
 
         # Delivery order fields
-        d = datetime.datetime.strptime(delivery.date_done, "%Y-%m-%d %H:%M:%S")
-        edi_doc['LEVERDATUM'] = d.strftime("%Y%m%d")
+        edi_doc['LEVERDATUM'] = delivery.date_done.strftime("%Y%m%d")
         if delivery.desadv_name:
             edi_doc['LEVERINGSBON'] = delivery.desadv_name
         else:
             edi_doc['LEVERINGSBON'] = delivery.name
 
-        d = datetime.datetime.strptime(delivery.min_date, "%Y-%m-%d %H:%M:%S")
-        edi_doc['LEVERPLANDATUM'] = d.strftime("%Y%m%d")
-        partner = partner_db.browse(cr, uid, delivery.partner_id.id, context)
+        edi_doc['LEVERPLANDATUM'] = delivery.scheduled_date.strftime("%Y%m%d")
+        partner = partner_db.browse(delivery.partner_id.id, context)
         if partner:
             edi_doc['LEVERPLAATS'] = partner.ref
 
         # Sale order fields
-        d = datetime.datetime.strptime(order.date_order, "%Y-%m-%d %H:%M:%S")
-        edi_doc['REFERENTIEDATUM'] = d.strftime("%Y%m%d")
-        partner = partner_db.browse(cr, uid, order.partner_id.id, context)
+        edi_doc['REFERENTIEDATUM'] = order.date_order.strftime("%Y%m%d")
+        partner = partner_db.browse(order.partner_id.id, context)
         if partner:
             edi_doc['AANKOPER'] = partner.ref
 
         # Line items
-        for line in invoice.invoice_line:
-            product = product_db.browse(cr, uid, line.product_id.id, context)
+        for line in invoice.invoice_line_ids:
+            product = product_db.browse(line.product_id.id, context)
 
             if product.type and product.type == 'service':  # product type used to indicate extra costs
                 edi_doc['KOSTENTOTAAL'] += line.price_subtotal
@@ -182,7 +176,7 @@ class account_invoice(osv.Model, EDIMixin):
             edi_line = copy.deepcopy(dict(LINE))
             edi_line['ARTIKEL'] = product.barcode
             edi_line['ARTIKELREF'] = product.name
-            edi_line['ARTIKELOMSCHRIJVING'] = product.description_sale[:35].upper()
+            edi_line['ARTIKELOMSCHRIJVING'] = product.description_sale[:35].upper() if product.description_sale else ''
             edi_line['AANTAL'] = line.quantity
             edi_line['AANTALGELEVERD'] = line.quantity
             edi_line['LIJNTOTAAL'] = line.price_subtotal
@@ -190,8 +184,8 @@ class account_invoice(osv.Model, EDIMixin):
             edi_line['UNITPRIJS'] = line.price_unit
             edi_line['LIJNTOTAALBELAST'] = line.price_subtotal
 
-            for line_tax in line.invoice_line_tax_id:
-                vat = tax_db.browse(cr, uid, line_tax.id, context)
+            for line_tax in line.invoice_line_tax_ids:
+                vat = tax_db.browse(line_tax.id, context)
                 if "Bebat" in vat.name:
                     edi_line['BEBAT'] += vat.amount
                 elif "Recupel" in vat.name:

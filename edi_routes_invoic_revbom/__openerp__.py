@@ -1,5 +1,5 @@
 {
-    'name': 'edi_routes_invoic',
+    'name': 'edi_routes_invoic_revbom',
     'summary': 'Edifact INVOIC communication using the EDI framework using Reverse BOM',
     'version': '1.0',
     'category': 'EDI Tools',

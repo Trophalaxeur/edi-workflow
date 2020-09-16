@@ -9,7 +9,6 @@
         'edi_tools',
         'edi_mrp_enable',
         'mrp',
-        'sale_stock_reference_chainer',
         'sale_stock_incoterm_chainer',
         'product_customerinfo',
         'delivery_instructions',

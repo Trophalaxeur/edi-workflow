@@ -10,7 +10,6 @@
         'stock_bom_pickpack',
         'edi_stock_enable',
         'stock',
-        'sale_stock_reference_chainer',
         'sale_stock_incoterm_chainer',
         'product_customerinfo',
         'delivery_instructions',
