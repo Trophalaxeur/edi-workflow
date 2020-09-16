@@ -3,7 +3,7 @@ import logging
 
 from openerp import models, fields, api, _
 from openerp.exceptions import except_orm
-from openerp.addons.edi_tools.models.exceptions import EdiValidationError
+from odoo.addons.edi_tools.models.exceptions import EdiValidationError
 
 _logger = logging.getLogger(__name__)
 

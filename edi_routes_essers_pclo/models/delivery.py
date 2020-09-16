@@ -3,14 +3,14 @@ from itertools import groupby
 import logging
 import StringIO
 
-from openerp import api, _
+from odoo import api, _, models
 from openerp.osv import osv
-from openerp.addons.edi_tools.models.exceptions import EdiValidationError
+from odoo.addons.edi_tools.models.exceptions import EdiValidationError
 
 _logger = logging.getLogger(__name__)
 
 
-class stock_picking(osv.Model):
+class stock_picking(models.Model):
     _inherit = "stock.picking"
 
     @api.model

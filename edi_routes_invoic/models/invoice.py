@@ -1,14 +1,12 @@
 import copy
 import datetime
-import json
 import logging
 
 
-from openerp import api, _
-from openerp.osv import osv
+from odoo import api, _, models
 from odoo.exceptions import UserError
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
-from openerp.addons.edi_tools.models.exceptions import EdiValidationError
+from odoo.addons.edi_tools.models.exceptions import EdiValidationError
 LOGGER = logging.getLogger(__name__)
 
 LINE = {
@@ -62,7 +60,7 @@ INVOICE = {
 }
 
 
-class account_invoice(osv.Model, EDIMixin):
+class account_invoice(models.Model, EDIMixin):
     _name = "account.invoice"
     _inherit = "account.invoice"
 
@@ -101,10 +99,10 @@ class account_invoice(osv.Model, EDIMixin):
 
         delivery = pick_db.search([('origin', '=', invoice.origin)])
         if not delivery:
-            raise osv.except_osv(_('Warning!'), _("Could not find delivery for invoice: {!s}").format(invoice.number))
+            raise UserError(_("Could not find delivery for invoice: {!s}").format(invoice.number))
         order = order_db.search([('name', '=', invoice.origin)])
         if not order:
-            raise osv.except_osv(_('Warning!'), _("Could not find order for invoice: {!s}").format(invoice.number))
+            raise UserError(_("Could not find order for invoice: {!s}").format(invoice.number))
         company = company_db.search([])[0]
 
         now = datetime.datetime.now()

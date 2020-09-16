@@ -4,7 +4,7 @@ import datetime
 import pytz
 #import json
 
-from odoo import api, _
+from odoo import api, _, models
 from odoo import models, fields
 from odoo.exceptions import except_orm
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin

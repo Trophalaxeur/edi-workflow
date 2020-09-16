@@ -1,7 +1,7 @@
 from openerp.osv import osv, fields
 from openerp.tools.translate import _
 
-class account_tax_code(osv.Model):
+class account_tax_code(models.Model):
     _name = "account.tax.code"
     _inherit = "account.tax.code"
     _columns = {

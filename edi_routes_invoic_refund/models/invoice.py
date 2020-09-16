@@ -2,10 +2,10 @@ import copy
 import datetime
 import json
 
-from openerp import api, _
+from odoo import api, _, models
 from openerp.osv import osv
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
-from openerp.addons.edi_tools.models.exceptions import EdiValidationError
+from odoo.addons.edi_tools.models.exceptions import EdiValidationError
 
 
 LINE = {
@@ -58,7 +58,7 @@ INVOICE = {
 }
 
 
-class account_invoice(osv.Model, EDIMixin):
+class account_invoice(models.Model, EDIMixin):
     _name = "account.invoice"
     _inherit = "account.invoice"
 

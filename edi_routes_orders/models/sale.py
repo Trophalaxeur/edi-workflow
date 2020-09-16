@@ -6,7 +6,7 @@ import logging
 from openerp.osv import osv
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
 from openerp.tools.translate import _
-from openerp.addons.edi_tools.models.exceptions import EdiValidationError
+from odoo.addons.edi_tools.models.exceptions import EdiValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ def is_dst():
     now = pytz.utc.localize(datetime.datetime.utcnow())
     return now.astimezone(tz).dst() != datetime.timedelta(0)
 
-class sale_order(osv.Model, EDIMixin):
+class sale_order(models.Model, EDIMixin):
     _name = "sale.order"
     _inherit = "sale.order"
 

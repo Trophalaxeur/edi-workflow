@@ -4,7 +4,7 @@ from itertools import groupby
 import json
 import logging
 
-from openerp import api, _
+from odoo import api, _, models
 from openerp.osv import osv, fields
 from openerp.exceptions import except_orm
 from odoo.addons.edi_tools.models.edi_mixing import EDIMixin
@@ -38,7 +38,7 @@ DESADV = {
     },  
 }
 
-class stock_picking(osv.Model, EDIMixin):
+class stock_picking(models.Model, EDIMixin):
     _inherit = "stock.picking"
 
     @api.model
