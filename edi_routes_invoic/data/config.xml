@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
     <data>
         <record id="edi_essers_INVOIC_D96A_out" model="edi.tools.edi.flow">
             <field name="name">INVOIC D96A(out)</field>
@@ -9,4 +9,4 @@
             <field name="partner_resolver"></field>
         </record>
     </data>
-</openerp>
+</odoo>

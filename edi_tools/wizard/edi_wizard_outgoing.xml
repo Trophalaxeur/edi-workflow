@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
-    <data>
+<odoo>
+
         <!-- Archiving wizard -->
         <record id="edi_tools_wizard_edi_outgoing_form" model="ir.ui.view">
             <field name="name">EDI Export</field>
@@ -27,5 +27,5 @@
                 </form>
             </field>
         </record>
-    </data>
-</openerp>
+
+</odoo>

@@ -66,7 +66,7 @@ class edi_tools_edi_document(models.Model):
     _error_file_move_failed                   = 'file_move_failed'
 
 
-    @api.multi
+    
     def _function_message_get(self):
         ''' edi.tools.edi.document:_function_message_get()
         -----------------------------------------------------
@@ -202,7 +202,7 @@ class edi_tools_edi_document(models.Model):
 
         return True
 
-    @api.multi
+    
     def copy(self, default=None):
         for document in self:
             if default is None:
@@ -259,12 +259,12 @@ class edi_tools_edi_document_incoming(models.Model):
 
     processed = fields.Boolean('Processed', readonly=True)
 
-    @api.multi
+    
     def copy(self, default=None):
         default = default and default.copy() or {}
         return super(edi_tools_edi_document_incoming, self).copy(default=default)
 
-    @api.multi
+    
     def document_manual_process(self):
         for record in self:
             record.action_processing()
@@ -473,7 +473,7 @@ class edi_tools_edi_document_incoming(models.Model):
         _logger.debug('End the EDI document processor.')
         return True
 
-    @api.multi
+    
     def valid(self):
         ''' edi.tools.edi.document.incoming:valid()
         ----------------------------------------------
@@ -519,7 +519,7 @@ class edi_tools_edi_document_incoming(models.Model):
                 document.message_post(body='Programming error occured during validation:{!s}'.format(str(e)))
                 return False
 
-    @api.multi
+    
     def action_new(self):
         ''' edi.tools.edi.document.incoming:action_new()
         ---------------------------------------------------
@@ -532,7 +532,7 @@ class edi_tools_edi_document_incoming(models.Model):
         self.write({ 'state' : 'new' })
         return True
 
-    @api.multi
+    
     def action_in_error(self):
         ''' edi.tools.edi.document.incoming:action_in_error()
         --------------------------------------------------------
@@ -544,7 +544,7 @@ class edi_tools_edi_document_incoming(models.Model):
         self.write({ 'state' : 'in_error', 'processed' : False })
         return True
 
-    @api.multi
+    
     def action_ready(self):
         ''' edi.tools.edi.document.incoming:action_ready()
         -----------------------------------------------------
@@ -558,7 +558,7 @@ class edi_tools_edi_document_incoming(models.Model):
         self.write({ 'state' : 'ready' })
         return True
 
-    @api.multi
+    
     def action_processing(self):
         ''' edi.tools.edi.document.incoming:action_processing()
         ----------------------------------------------------------
@@ -569,7 +569,7 @@ class edi_tools_edi_document_incoming(models.Model):
         self.write({ 'state' : 'processing' })
         return True
 
-    @api.multi
+    
     def action_processed(self):
         ''' edi.tools.edi.document.incoming:action_processed()
         ---------------------------------------------------------
@@ -603,7 +603,7 @@ class edi_tools_edi_document_incoming(models.Model):
             _logger.debug("Document %s Processed with state %s", str(document.id), str(document.state))
             return True
 
-    @api.multi
+    
     def action_archive(self):
         ''' edi.tools.edi.document.incoming:action_archive()
         -------------------------------------------------------
@@ -700,7 +700,7 @@ class edi_tools_edi_document_outgoing(models.Model):
 
         return True
 
-    @api.multi
+    
     def document_manual_process(self):
         '''Button action to manually process outgoing document'''
         for document in self:

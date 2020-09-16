@@ -12,7 +12,7 @@ class edi_tools_edi_wizard_ready(models.TransientModel):
         This method is used by the EDI wizard to push
         multiple documents to the workflow "ready" state.
         ------------------------------------------------- '''
-    @api.multi
+    
     def ready(self):
 
         # Get the selected documents

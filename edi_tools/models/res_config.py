@@ -14,7 +14,7 @@ class edi_tools_config_settings(models.TransientModel):
         )
         return res
 
-    @api.multi
+    
     def set_values(self):
         super(edi_tools_config_settings, self).set_values()
         ICPSudo = self.env['ir.config_parameter'].sudo()

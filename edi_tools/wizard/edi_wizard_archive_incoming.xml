@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
-	<data>
+<odoo>
 
 
-		<!-- Archiving wizard -->
 		<act_window name="Archive" res_model="edi.tools.edi.wizard.archive.incoming"
-			src_model="edi.tools.edi.document.incoming" view_mode="form" target="new"
-			key2="client_action_multi" multi="True" id="edi_tools_edi_wizard_archive_incoming" />
+			binding_model="edi.tools.edi.document.incoming" view_mode="form" target="new"
+			id="edi_tools_edi_wizard_archive_incoming" />
 
 		<record id="edi_tools_wizard_edi_archive_incoming_form" model="ir.ui.view">
 			<field name="name">Archive</field>
@@ -25,5 +23,5 @@
 				</form>
 			</field>
 		</record>
-	</data>
-</openerp>
+
+</odoo>

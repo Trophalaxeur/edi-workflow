@@ -17,7 +17,7 @@ class SaleOrder(models.Model):
             return False
         return True
 
-    @api.multi
+    
     def send_edi_export_example_saleorder(self, partner_id):
         valid_orders = self.filtered(self.valid_for_edi_export_example_saleorder)
         invalid_orders = [p for p in self if p not in valid_orders]

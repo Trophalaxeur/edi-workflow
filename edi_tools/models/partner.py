@@ -19,7 +19,7 @@ class edi_partner(models.Model):
         self.update_partner_overview_file()
         return new_id
 
-    @api.multi
+    
     def write(self, vals):
         ''' Make sure all required EDI directories are created '''
         result = super(edi_partner, self).write(vals)
@@ -27,7 +27,7 @@ class edi_partner(models.Model):
         self.update_partner_overview_file()
         return result
 
-    @api.multi
+    
     def maintain_edi_directories(self):
         for partner in self:
             ''' This method creates all EDI directories for a given set of partners.

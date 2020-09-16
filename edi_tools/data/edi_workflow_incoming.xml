@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<openerp>
+<odoo>
 	<data>
 		<!-- EDI Workflow Header -->
 		<record model="workflow" id="edi_tools_edi_workflow_incoming">
@@ -108,4 +108,4 @@
 			<field name="condition">True</field>
 		</record>
 	</data>
-</openerp>
+</odoo>

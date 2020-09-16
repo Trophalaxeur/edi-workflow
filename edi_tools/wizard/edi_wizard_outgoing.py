@@ -48,7 +48,7 @@ class edi_tools_edi_wizard_outgoing(models.TransientModel):
         res['arch'] = etree.tostring(doc)
         return res
 
-    @api.multi
+    
     def send(self):
         self._check_partner_allowed(self.flow_id, self.partner_id)
         records = self.env[self.flow_id.model].browse(self._context.get('active_ids',[]))

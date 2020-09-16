@@ -70,7 +70,7 @@ class account_invoice(models.Model, EDIMixin):
             return False
         return True
 
-    @api.multi
+    
     def send_edi_export_invoic(self, partner_id):
         valid_invoices = self.filtered(self.valid_for_edi_export_invoic)
         invalid_invoices = [p for p in self if p not in valid_invoices]

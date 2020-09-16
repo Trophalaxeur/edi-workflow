@@ -1,12 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
-	<data>
+<odoo>
 
-
-		<!-- "Move to ready" wizard -->
 		<act_window name="Ready" res_model="edi.tools.edi.wizard.ready"
-			src_model="edi.tools.edi.document.incoming" view_mode="form" target="new"
-			key2="client_action_multi" multi="True" id="edi_tools_edi_wizard_ready" />
+			binding_model="edi.tools.edi.document.incoming" view_mode="form" target="new"
+			id="edi_tools_edi_wizard_ready" />
 
 		<record id="edi_tools_wizard_edi_ready_form" model="ir.ui.view">
 			<field name="name">Mark as ready</field>
@@ -25,5 +22,5 @@
 			</field>
 		</record>
 
-	</data>
-</openerp>
+
+</odoo>

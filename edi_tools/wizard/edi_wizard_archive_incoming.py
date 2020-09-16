@@ -11,7 +11,7 @@ class edi_tools_edi_wizard_archive_incoming(models.TransientModel):
         This method is used by the EDI wizard to push
         multiple documents to the workflow "archived" state.
         ---------------------------------------------------- '''
-    @api.multi
+    
     def archive(self):
         # Get the selected documents
         # --------------------------
