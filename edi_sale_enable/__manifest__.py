@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-#    Author: Jan Vereecken
+#    Author: Florian Lefevre
+#    Original Author: Jan Vereecken
+#    Source: http://www.clubit.be
 #    Copyright 2015 Clubit BVBA
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -17,8 +19,8 @@
 
 {'name': 'EDI for sale',
  'summary': 'Enable sending EDI for sale objects',
- 'version': '0.1',
- 'author': "Clubit BVBA",
+ 'version': '13.0.1',
+ 'author': "Florian Lefevre / Clubit BVBA",
  'category': 'Sales',
  'license': 'AGPL-3',
  'images': [],

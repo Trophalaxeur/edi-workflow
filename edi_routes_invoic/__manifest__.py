@@ -1,10 +1,9 @@
 {
     'name': 'edi_routes_invoic',
     'summary': 'Edifact INVOIC communication using the EDI framework',
-    'version': '1.0',
+    'version': '13.0.1',
     'category': 'EDI Tools',
-    'author': 'Clubit BVBA',
-    'website': 'http://www.clubit.be',
+    'author': 'Florian Lefevre / Clubit BVBA',
     'depends': [
         'edi_tools',
         'edi_account_enable',

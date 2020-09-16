@@ -1,10 +1,9 @@
 {
     'name': 'edi_routes_example_saleorder',
     'summary': 'EDI example route that shows you how to export and import a sale order.',
-    'version': '1.0',
+    'version': '13.0.1',
     'category': 'EDI Tools',
-    'author': 'Clubit BVBA',
-    'website': 'http://www.clubit.be',
+    'author': 'Florian Lefevre / Clubit BVBA',
     'depends': [
         'edi_tools',
         'sale',

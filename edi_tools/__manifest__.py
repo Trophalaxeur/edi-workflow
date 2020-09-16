@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-#    Author: Jan Vereecken
+#    Author: Florian Lefevre
+#    Original Author: Jan Vereecken
+#    Source: http://www.clubit.be
 #    Copyright 2015 Clubit BVBA
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -21,15 +23,13 @@
 {
     'name': 'EDI Tools',
     'summary': 'General Purpose Toolbox',
-    'version': '1.0',
+    'version': '13.0.1',
     'category': 'Tools',
     'description': "EDI Toolbox basic functionalities",
-    'author': 'Clubit',
-    'website': 'http://www.clubit.be',
+    'author': 'Florian Lefevre / Clubit',
     'depends': ['base', 'mail','sale','account'],
     'data': [
         'data/edi_schedulers.xml',
-        #'data/edi_workflow_incoming.xml',
         'security/security.xml',
         'views/edi_view.xml',
         'views/res_config.xml',
