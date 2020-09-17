@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <act_window
+            id="act_edi_account_enable_invoice"
+            name="Send EDI"
+            res_model="edi.tools.edi.wizard.outgoing"
+            binding_model="account.move" target="new"
+            view_id="edi_tools.edi_tools_wizard_edi_outgoing_form" view_mode="form"/>
+    </data>
+</odoo>

@@ -68,7 +68,7 @@ INVOICE_EDI_STRUCT = {
 }
 
 class account_invoice(models.Model, EDIMixin):
-    _inherit = 'account.invoice'
+    _inherit = 'account.move'
 
     def edi_export(self, records, edi_struct=None):
         """Exports a supplier or customer invoice"""
@@ -278,10 +278,10 @@ class account_invoice(models.Model, EDIMixin):
 
 
 class account_invoice_line(models.Model, EDIMixin):
-    _inherit='account.invoice.line'
+    _inherit='account.move.line'
 
 class account_invoice_tax(models.Model, EDIMixin):
-    _inherit = "account.invoice.tax"
+    _inherit = "account.move.tax"
 
 
 
