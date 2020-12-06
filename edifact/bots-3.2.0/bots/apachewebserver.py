@@ -26,8 +26,8 @@ WSGIDaemonProcess config user=xxxxx
 WSGIProcessGroup config
 </VirtualHost>
 '''
-import botsglobal
-import botsinit
+from . import botsglobal
+from . import botsinit
 
 
 def start(configdir):

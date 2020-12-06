@@ -1,11 +1,13 @@
 <?xml version="1.0"?>
-<openerp>
+<odoo>
     <data>
         <record model="ir.ui.view" id="view_company_form">
             <field name="model">res.company</field>
+            <field name="name">edifact.view_company_form</field>
             <field name="inherit_id" ref="base.view_company_form" />
             <field name="arch" type="xml">
-                <page string="Configuration" position="inside">
+            <xpath expr="//page" position="inside">
+                <!-- <page string="Configuration" position="inside"> -->
                     <group name="edi_configuration">
                         <separator string="EDI parameters" colspan="2"/>
                         <group>
@@ -17,8 +19,8 @@
                             <field name="duplicated_path"/>
                         </group>
                     </group>
-                </page>
+                </xpath>
             </field>
         </record>
     </data>
-</openerp>
+</odoo>

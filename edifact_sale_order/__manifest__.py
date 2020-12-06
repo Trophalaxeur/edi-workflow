@@ -29,6 +29,7 @@
     'depends': [
         'edifact',
         'sale',
+        'point_of_sale',
     ],
     'data': [
         'data/data.xml',

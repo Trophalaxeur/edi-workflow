@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
     <data>
         <menuitem id="menu_edifact_sale_order"
                   parent="edifact.menu_edifact"
@@ -8,6 +8,6 @@
                       parent="menu_edifact_sale_order"
                       name="Import Orders"
                       action="action_edifact_sale_order_import"
-                      groups="edifact.group_edifact,base.group_sale_salesman"/>
+                      groups="edifact.group_edifact"/>
     </data>
-</openerp>
+</odoo>

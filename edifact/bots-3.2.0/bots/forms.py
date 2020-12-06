@@ -1,8 +1,8 @@
 import django
 from django.utils.translation import ugettext as _
 #***********
-import models
-import viewlib
+from . import models
+from . import viewlib
 #~ import botsglobal
 
 HIDDENINPUT = django.forms.widgets.HiddenInput
@@ -72,7 +72,7 @@ class ViewIncoming(View):
 class SelectDocument(Select):
     template = 'bots/selectform.html'
     action = '/document/'
-    status = django.forms.TypedChoiceField([(0,"---------"),(320,_(u'Document-in')),(330,_(u'Document-out'))],required=False,initial=0,coerce=int)
+    status = django.forms.TypedChoiceField([(0,"---------"),(320,_('Document-in')),(330,_('Document-out'))],required=False,initial=0,coerce=int)
     idroute = django.forms.ChoiceField([],required=False,initial='')
     frompartner = django.forms.ChoiceField([],required=False)
     topartner = django.forms.ChoiceField([],required=False)

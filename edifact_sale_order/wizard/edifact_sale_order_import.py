@@ -18,7 +18,6 @@ class EdifactSaleOrderImport(models.TransientModel):
         string='Files to import',
         default=_get_files_to_import)
 
-    @api.multi
     def action_import(self):
         edi_doc = self.env['edifact.document'].process_order_in_files()
         if not edi_doc:

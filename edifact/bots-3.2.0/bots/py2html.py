@@ -12,7 +12,7 @@ __author__ = 'Raymond Hettinger'
 # highlight colour. No simple way to fix this, but it's not really an issue.
 
 import keyword, tokenize, cgi, functools
-import __builtin__ as builtins
+import builtins as builtins
 
 #### Analyze Python Source #################################
 

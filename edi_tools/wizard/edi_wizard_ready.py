@@ -1,6 +1,9 @@
+import sys
+import logging
 from odoo import models, api
 from odoo.tools.translate import _
 from odoo.exceptions import ValidationError
+LOGGER = logging.getLogger(__name__)
 
 class edi_tools_edi_wizard_ready(models.TransientModel):
     _name = 'edi.tools.edi.wizard.ready'
@@ -14,6 +17,10 @@ class edi_tools_edi_wizard_ready(models.TransientModel):
         ------------------------------------------------- '''
     
     def ready(self):
+        LOGGER.warning('TMP SYS PATH')
+        LOGGER.warning('SYS PATH TYPE %s', type(sys.path))
+        for path in sys.path:
+            LOGGER.warning('- %s', path)
 
         # Get the selected documents
         # --------------------------
@@ -24,5 +31,5 @@ class edi_tools_edi_wizard_ready(models.TransientModel):
             # Push each document to ready
             # ---------------------------
             for document in self.env['edi.tools.edi.document.incoming'].browse(ids):
-                if document.state == 'new' or document.state == 'in_error':
+                if document.state == 'new' or document.state == 'in_error'  or document.state == 'processing':
                     document.action_ready()

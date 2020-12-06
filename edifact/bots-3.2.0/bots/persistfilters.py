@@ -17,11 +17,11 @@ class FilterPersistMiddleware(object):
         if '/admin/' not in request.path or request.method == 'POST':
             return None
 
-        if request.META.has_key('HTTP_REFERER'):
+        if 'HTTP_REFERER' in request.META:
             referrer = request.META['HTTP_REFERER'].split('?')[0]
             referrer = referrer[referrer.find('/admin'):len(referrer)]
         else:
-            referrer = u''
+            referrer = ''
 
         popup = 'pop=1' in request.META['QUERY_STRING']
         path = request.path
@@ -39,7 +39,7 @@ class FilterPersistMiddleware(object):
         if path == referrer:
             # We are in the same page as before. We assume that filters were changed and update them.
             if query_string == '':     #Filter is empty, delete it
-                if session.has_key(key):
+                if key in session:
                     del session[key]
                 return None
             else:

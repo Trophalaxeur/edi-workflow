@@ -60,18 +60,15 @@ class EdifactDocument(models.Model):
     file_name = fields.Char(
         string='File Name')
 
-    @api.multi
     def limit_string(self, string, num_char):
         return string and string[:num_char] or ''
 
-    @api.multi
     def get_order_number(self, origin):
         order = self.env['sale.order'].search([(
             'name', '=', origin)])
         return order and self.limit_string(order[0].client_order_ref, 35) or (
             self.limit_string(origin, 35))
 
-    @api.multi
     def get_picking(self, origin):
         if not origin:
             return ''
@@ -82,7 +79,6 @@ class EdifactDocument(models.Model):
         return order.picking_ids and self.limit_string(
             order.picking_ids[0].name, 35) or (self.limit_string(origin, 35))
 
-    @api.multi
     def ls_files(self, path, ttype=None):
         if ttype:
             path = '/'.join([path, ttype])
@@ -91,11 +87,8 @@ class EdifactDocument(models.Model):
                     for arch in listdir(path) if isfile(join(path, arch))]
         return []
 
-    @api.multi
     def get_path(self, ttype):
-        company_obj = self.env['res.company']
-        company_id = company_obj._company_default_get('sale.order')
-        company = company_obj.browse(company_id)
+        company = self.env['res.company'].browse(self.env.company.id)
         if not company:
             return False
         if ttype == 'in':
@@ -105,29 +98,22 @@ class EdifactDocument(models.Model):
         if ttype == 'duplicated':
             return company.duplicated_path
 
-    @api.multi
     def get_user(self):
-        company_obj = self.env['res.company']
-        company_id = company_obj._company_default_get('sale.order')
-        company = company_obj.browse(company_id)
+        company = self.env['res.company'].browse(self.env.company.id)
         return company and company.user_id or None
 
-    @api.multi
     def delete_file(self, path):
         remove(path)
 
-    @api.multi
     def move_file_to_duplicated(self, path):
         path_split = path.split('/')
         file_name = path_split[len(path_split) and len(path_split) - 1 or '']
         rename(path, '/'.join([self.get_path('duplicated'), file_name]))
 
-    @api.multi
     def read_in_files(self, ttype=None):
         path = self.get_path('in')
         return self.ls_files(path, ttype)
 
-    @api.multi
     def write_out_file(self, ttype, file_name, file_content):
         path = self.get_path('out')
         f = open('/'.join([path, ttype, file_name]), 'w+')
@@ -135,7 +121,6 @@ class EdifactDocument(models.Model):
         f.close()
         return '/'.join([path, ttype, file_name])
 
-    @api.multi
     def read_from_file(self, path):
         configdir = 'config'
         botsinit.generalinit(configdir)
@@ -156,6 +141,13 @@ class EdifactDocument(models.Model):
             'topartner': ''}
         try:
             edifile = inmessage.parse_edi_file(**ta_info)
+            _log.warning("EDIFILE %s", edifile)
+            if edifile.errorfatal:
+                _log.warning("EDIFILE error list %s", edifile.errorlist)
+                for errmsg in edifile.errorlist:
+                    _log.warning("error %s", errmsg)
+
+                raise exceptions.Warning(_('Error, TOTO Details:'))
         except Exception as e:
             if '[A59]' in str(e):
                 raise exceptions.Warning(
@@ -168,4 +160,5 @@ class EdifactDocument(models.Model):
         struc = [{ms.root.record['BOTSID']:
                  json_class._node2json(json_ins, ms.root)}
                  for ms in edifile.nextmessage()]
+        _log.warning("STRUC %s", struc)
         return struc

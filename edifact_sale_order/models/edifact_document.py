@@ -2,8 +2,11 @@
 ##############################################################################
 # For copyright and license notices, see __openerp__.py file in root directory
 ##############################################################################
-from openerp import models, fields, api, exceptions, _
-
+import logging
+import datetime
+from odoo import models, fields, api, _
+from odoo.exceptions import UserError
+_log = logging.getLogger(__name__)
 
 class EdifactDocument(models.Model):
     _inherit = 'edifact.document'
@@ -12,42 +15,42 @@ class EdifactDocument(models.Model):
         comodel_name='sale.order',
         string='Order')
 
-    @api.multi
-    def get_product_dict(self, pias):
+    def get_product_dict(self, line_dict):
         product_obj = self.env['product.product']
         prod = False
         name = ''
         prod_vals = {}
-        for pia in pias:
-            pia_name = pia.get('C212#1.7140')
-            prod = product_obj.search([('default_code', 'ilike', pia_name)])
-            if prod:
-                break
+        # pia_name = line_dict.get('C212#1.7140')
+        pia_name = line_dict.get('C212.7140')
+        _log.warning('LINE8DICT %s', line_dict)
+        _log.warning('PIANAME %s', pia_name)
+        prod = product_obj.search([('default_code', 'ilike', pia_name)])
+        _log.warning('PROD0 %s', prod)
+        if not prod:
             name = pia_name
             prod = product_obj.search([('name', 'ilike', pia_name)])
-            if prod:
-                break
+            _log.warning('PROD1 %s', prod)
         if prod:
             prod_vals['product_id'] = prod.id
         else:
             prod_vals['name'] = name
         return prod_vals
 
-    @api.multi
     def get_order_line_vals(self, line_dict, order):
+        _log.warning('LINE %s', line_dict)
         line_vals = {}
-        pias = line_dict.get('PIA')
-        prod_vals = self.get_product_dict(pias)
-        for key, value in prod_vals.iteritems():
+        # pias = line_dict.get('PIA')
+        prod_vals = self.get_product_dict(line_dict)
+        for key, value in prod_vals.items():
             line_vals[key] = value
         qty = float(line_dict.get('QTY')[0].get('C186.6060'))
-        subtotal = float(line_dict.get('MOA')[0].get('C516.5004'))
+        subtotal = float(line_dict.get('PRI')[0].get('C509.5118'))
+        # subtotal = float(line_dict.get('MOA')[0].get('C516.5004'))
         line_vals.update({'product_uom_qty': qty,
                           'price_unit': subtotal / qty,
                           'order_id': order.id})
         return line_vals
 
-    @api.multi
     def get_order_vals(self, data_dict):
         def _get_currency(vals, unh):
             return self.env['res.currency'].search(
@@ -61,30 +64,31 @@ class EdifactDocument(models.Model):
                 if '3035' in n and n['3035'] == buyer_purchase_order]
             partner_ean = partner_ean and str(partner_ean[0]) or []
             partner = self.env['res.partner'].search(
-                [('ean13', 'ilike', partner_ean)])
+                [('barcode', 'ilike', partner_ean)])
             if not partner:
-                raise exceptions.Warning(_(
-                    'No client with EAN %s found') % partner_ean,
-                    'Order %s' % unh.get('0062'))
+                raise UserError(_('No client with EAN %s found (Order %s)') % (partner_ean, unh.get('0062')))
             return partner, partner_ean
 
         vals = {}
         unh = data_dict.get('UNH', {})
-        vals['date_order'] = unh.get('DTM', [{}])[0].get('C507.2380')
+        date_old_format = unh.get('DTM', [{}])[0].get('C507.2380')
+        vals['date_order'] = datetime.datetime.strptime(date_old_format, '%Y%m%d').strftime('%Y-%m-%d')
+        _log.warning('DATE ORDER %s', vals['date_order'])
         currencies = _get_currency(vals, unh)
         vals['currency_id'] = currencies.exists() and currencies[0].id or None
         partner_data = _get_partner(vals, unh)
+        _log.warning('partner_data %s', partner_data)
         vals.update({
-            'ean': partner_data[1],
+            # 'ean': partner_data[1],
             'client_order_ref': unh.get('0062'),
             'partner_id': partner_data[0] and partner_data[0].id or None})
         user = self.get_user()
         vals['user_id'] = user and user.id or None
         return vals
 
-    @api.multi
     def process_order_in_files(self):
         def _create_order_lines(lines, order):
+            _log.warning('LINES %s', lines)
             for lin in lines:
                 line_vals = self.get_order_line_vals(lin, order)
                 line_obj.create(line_vals)
@@ -109,7 +113,9 @@ class EdifactDocument(models.Model):
         for ffile in files:
             order_exist = False
             data_dict_list = self.read_from_file(ffile)
+            _log.warning("data_dict_list %s", data_dict_list)
             for data_dict in data_dict_list:
+                _log.warning("- data_dict %s", data_dict)
                 unh = data_dict.get('UNH', {})
                 name = unh.get('0062')
                 order_exist = order_obj.search(

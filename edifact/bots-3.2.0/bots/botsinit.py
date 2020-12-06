@@ -2,32 +2,36 @@ import sys
 import os
 import encodings
 import codecs
-import ConfigParser
+import configparser
+# from six.moves import configparser
 import logging
 import logging.handlers
 #Bots-modules
-import botsglobal
-import botslib
-import node
+from . import botsglobal
+from . import botslib
+from . import node
 
-class BotsConfig(ConfigParser.RawConfigParser):
+_UNSET = object()
+
+class BotsConfig(configparser.ConfigParser):
     ''' As ConfigParser, but with defaults.
     '''
-    def get(self,section, option, default=''):
+    def get(self,section, option, default='', raw=True, vars=None, fallback=_UNSET):
         if self.has_option(section, option):
-            return ConfigParser.RawConfigParser.get(self,section, option)
+            return configparser.RawConfigParser.get(self,section, option, raw=True)
         elif default == '':
-            raise botslib.BotsError(u'No entry "%(option)s" in section "%(section)s" in "bots.ini".',{'option':option,'section':section})
+            raise botslib.BotsError('No entry "%(option)s" in section "%(section)s" in "bots.ini".',{'option':option,'section':section})
         else:
             return default
     def getint(self,section, option, default):
         if self.has_option(section, option):
-            return ConfigParser.RawConfigParser.getint(self,section, option)
+            print('getint(%s, %s)'%(section, option))
+            return configparser.RawConfigParser.getint(self,section, option, raw=True)
         else:
             return default
     def getboolean(self,section, option, default):
         if self.has_option(section, option):
-            return ConfigParser.RawConfigParser.getboolean(self,section, option)
+            return configparser.RawConfigParser.getboolean(self,section, option, raw=True)
         else:
             return default
 
@@ -44,7 +48,7 @@ def generalinit(configdir):
             settings = botslib.botsbaseimport(importnameforsettings)
         except ImportError:     #set pythonpath to config directory first
             if not os.path.exists(configdir):    #check if configdir exists.
-                raise botslib.PanicError(u'In initilisation: path to configuration does not exists: "%(configdir)s".',{'configdir':configdir})
+                raise botslib.PanicError('In initilisation: path to configuration does not exists: "%(configdir)s".',{'configdir':configdir})
             addtopythonpath = os.path.abspath(os.path.dirname(configdir))
             moduletoimport = os.path.basename(configdir)
             sys.path.append(addtopythonpath)
@@ -76,7 +80,7 @@ def generalinit(configdir):
             importedusersys = botslib.botsbaseimport(importnameforusersys)
         except ImportError:     #set pythonpath to usersys directory first
             if not os.path.exists(usersys):    #check if configdir exists.
-                raise botslib.PanicError(u'In initilisation: path to configuration does not exists: "%(usersys)s".',{'usersys':usersys})
+                raise botslib.PanicError('In initilisation: path to configuration does not exists: "%(usersys)s".',{'usersys':usersys})
             addtopythonpath = os.path.abspath(os.path.dirname(usersys))     #????
             moduletoimport = os.path.basename(usersys)
             sys.path.append(addtopythonpath)
@@ -122,10 +126,10 @@ def initbotscharsets():
     #syntax has parameters checkcharsetin or checkcharsetout. These can have value 'botsreplace'
     #eg: 'checkcharsetin':'botsreplace',  #strict, ignore or botsreplace
     #in case of errors: the 'wrong' character is replaced with char as set in bots.ini. Default value in bots.ini is ' ' (space)
-    botsglobal.botsreplacechar = unicode(botsglobal.ini.get('settings','botsreplacechar',u' '))
+    botsglobal.botsreplacechar = str(botsglobal.ini.get('settings','botsreplacechar',' '))
     codecs.register_error('botsreplace', botsreplacechar_handler)    #need to register the handler for botsreplacechar
     #set aliases for the charsets in bots.ini
-    for key, value in botsglobal.ini.items('charsets'):
+    for key, value in botsglobal.ini.items('charsets', raw=True):
         encodings.aliases.aliases[key] = value
 
 def codec_search_function(encoding):
@@ -150,8 +154,8 @@ def connect():
     if botsglobal.settings.DATABASES['default']['ENGINE'] == 'django.db.backends.sqlite3':
         #sqlite has some more fiddling; in separate file. Mainly because of some other method of parameter passing.
         if not os.path.isfile(botsglobal.settings.DATABASES['default']['NAME']):
-            raise botslib.PanicError(u'Could not find database file for SQLite')
-        import botssqlite
+            raise botslib.PanicError('Could not find database file for SQLite')
+        from . import botssqlite
         botsglobal.db = botssqlite.connect(database = botsglobal.settings.DATABASES['default']['NAME'])
     elif botsglobal.settings.DATABASES['default']['ENGINE'] == 'django.db.backends.mysql':
         import MySQLdb
@@ -176,7 +180,7 @@ def connect():
                                         connection_factory=psycopg2.extras.DictConnection)
         botsglobal.db.set_client_encoding('UNICODE')
     else:
-        raise botslib.PanicError(u'Unknown database engine "%(engine)s".',{'engine':botsglobal.settings.DATABASES['default']['ENGINE']})
+        raise botslib.PanicError('Unknown database engine "%(engine)s".',{'engine':botsglobal.settings.DATABASES['default']['ENGINE']})
 
 #*******************************************************************
 #*** init logging **************************************************

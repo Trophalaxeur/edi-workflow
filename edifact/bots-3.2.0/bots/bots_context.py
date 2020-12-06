@@ -1,5 +1,5 @@
-import botsglobal
-import models
+from . import botsglobal
+from . import models
 
 my_context = {}     #save vars initialised at startup
 

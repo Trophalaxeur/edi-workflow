@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<openerp>
+<odoo>
     <data>
         <record id="view_edifact_sale_order_import" model="ir.ui.view">
             <field name="model">edifact.sale.order.import</field>
@@ -27,10 +27,10 @@
         <record id="action_edifact_sale_order_import" model="ir.actions.act_window">
             <field name="name">Import Sale Orders</field>
             <field name="res_model">edifact.sale.order.import</field>
-            <field name="view_type">form</field>
+            <!-- <field name="view_type">form</field> -->
             <field name="view_mode">tree,form</field>
             <field name="view_id" ref="view_edifact_sale_order_import"/>
             <field name="target">new</field>
         </record>
     </data>
-</openerp>
+</odoo>

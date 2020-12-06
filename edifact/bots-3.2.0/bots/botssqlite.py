@@ -4,7 +4,7 @@ except ImportError:
     import sqlite3 as sqlite    #works OK for python26
 
 import re
-reformatparamstyle = re.compile(u'%\((?P<name>[^)]+)\)s')
+reformatparamstyle = re.compile('%\((?P<name>[^)]+)\)s')
 
 #~ #bots engine uses:
 #~ ''' SELECT *
@@ -36,5 +36,5 @@ class BotsCursor(sqlite.Cursor):
         if parameters is None:
             sqlite.Cursor.execute(self,string)
         else:
-            sqlite.Cursor.execute(self,reformatparamstyle.sub(u''':\g<name>''',string),parameters)
+            sqlite.Cursor.execute(self,reformatparamstyle.sub(''':\g<name>''',string),parameters)
 

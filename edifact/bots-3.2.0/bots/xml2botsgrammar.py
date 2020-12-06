@@ -20,14 +20,14 @@ except ImportError:
 try:
     from collections import OrderedDict
 except:
-    from bots_ordereddict import OrderedDict    
-import botslib
-import botsinit
-import botsglobal
-import inmessage
-import outmessage
-import node
-from botsconfig import *
+    from .bots_ordereddict import OrderedDict    
+from . import botslib
+from . import botsinit
+from . import botsglobal
+from . import inmessage
+from . import outmessage
+from . import node
+from .botsconfig import *
 
 #**************************************************************************************
 #***classes used in inmessage for xml2botsgrammar.
@@ -62,12 +62,12 @@ class xmlforgrammar(inmessage.Inmessage):
                 if self._use_botscontent(xmlchildnode):
                     newnode.record[xmlchildnode.tag] = '1'      #add as a field
                 #convert the xml-attributes of this 'xml-field' to fields in dict with attributemarker.
-                newnode.record.update((xmlchildnode.tag + self.ta_info['attributemarker'] + key, value) for key,value in xmlchildnode.items())
+                newnode.record.update((xmlchildnode.tag + self.ta_info['attributemarker'] + key, value) for key,value in list(xmlchildnode.items()))
         return newnode
 
     def _etreenode2botstreenode(self,xmlnode):
         ''' build a OrderedDict from xml-node. Add BOTSID, xml-attributes (of 'record'), xmlnode.text as BOTSCONTENT.'''
-        build = OrderedDict((xmlnode.tag + self.ta_info['attributemarker'] + key,value) for key,value in xmlnode.items())   #convert xml attributes to fields.
+        build = OrderedDict((xmlnode.tag + self.ta_info['attributemarker'] + key,value) for key,value in list(xmlnode.items()))   #convert xml attributes to fields.
         build['BOTSID'] = xmlnode.tag
         if self._use_botscontent(xmlnode):
             build['BOTSCONTENT'] = '1'
@@ -95,7 +95,7 @@ class xmlforgrammar_allrecords(inmessage.Inmessage):
 
     def _etreenode2botstreenode(self,xmlnode):
         ''' build a OrderedDict from xml-node. Add BOTSID, xml-attributes (of 'record'), xmlnode.text as BOTSCONTENT.'''
-        build = OrderedDict((xmlnode.tag + self.ta_info['attributemarker'] + key,value) for key,value in xmlnode.items())   #convert xml attributes to fields.
+        build = OrderedDict((xmlnode.tag + self.ta_info['attributemarker'] + key,value) for key,value in list(xmlnode.items()))   #convert xml attributes to fields.
         build['BOTSID'] = xmlnode.tag
         if not self._is_record(xmlnode):
             build['BOTSCONTENT'] = '1'
@@ -121,10 +121,10 @@ def map_writefields(node_out,node_in,mpath):
     ''' als fields of this level are written to node_out.
     '''
     mpath_with_all_fields = copy.deepcopy(mpath)     #use a copy of mpath (do not want to change it)
-    for key in node_in.record.keys():       
+    for key in list(node_in.record.keys()):       
         if key in ['BOTSID','BOTSIDnr']:    #skip these
             continue
-        mpath_with_all_fields[-1][key] = u'dummy'    #add key to the mpath
+        mpath_with_all_fields[-1][key] = 'dummy'    #add key to the mpath
     node_out.put(*mpath_with_all_fields)            #write all fields.
 
 #******************************************************************
@@ -132,7 +132,7 @@ def map_writefields(node_out,node_in,mpath):
 def tree2grammar(node_instance,structure,recorddefs):
     structure.append({ID:node_instance.record['BOTSID'],MIN:0,MAX:99999,LEVEL:[]})
     recordlist = []
-    for key in node_instance.record.keys():
+    for key in list(node_instance.record.keys()):
         recordlist.append([key, 'C', 256, 'AN'])
     if node_instance.record['BOTSID'] in recorddefs:
         recorddefs[node_instance.record['BOTSID']] = removedoublesfromlist(recorddefs[node_instance.record['BOTSID']] + recordlist)
@@ -198,7 +198,7 @@ def grammar2file(botsgrammarfilename,structure,recorddefs,targetNamespace):
     f = open(botsgrammarfilename,'wb')
     f.write(result2)
     f.close()
-    print 'grammar file is written:',botsgrammarfilename
+    print('grammar file is written:',botsgrammarfilename)
 
 
 def start():
@@ -223,12 +223,12 @@ def start():
         if arg.startswith('-c'):
             configdir = arg[2:]
             if not configdir:
-                print 'Error: configuration directory indicated, but no directory name.'
+                print('Error: configuration directory indicated, but no directory name.')
                 sys.exit(1)
         elif arg.startswith('-a'):
             allrecords = True
         elif arg in ["?", "/?",'-h', '--help'] or arg.startswith('-'):
-            print usage
+            print(usage)
             sys.exit(0)
         else:
             if not edifile:
@@ -236,7 +236,7 @@ def start():
             else:
                 botsgrammarfilename = arg
     if not edifile or not botsgrammarfilename:
-        print 'Error: both edifile and grammarfile are required.'
+        print('Error: both edifile and grammarfile are required.')
         sys.exit(0)
     #***end handling command line arguments**************************
     botsinit.generalinit(configdir)     #find locating of bots, configfiles, init paths etc.

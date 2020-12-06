@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<openerp>
+<odoo>
     <data>
         <menuitem id="menu_edifact"
-                  name="Edifact"
-                  sequence="169"/>
+                groups="base.group_user"
+                name="Edifact"
+                sequence="998"/>
             <menuitem id="menu_document"
                       parent="edifact.menu_edifact"
                       name="Edifact Documents"/>
@@ -13,4 +14,4 @@
                           action="action_edifact_document"
                           groups="edifact.group_edifact"/>
     </data>
-</openerp>
+</odoo>

@@ -1,8 +1,10 @@
 import json
+import csv
 import logging
 
-from openerp import models, fields, api, _
-from openerp.exceptions import except_orm
+from io import StringIO
+from odoo import models, api, _
+from odoo.exceptions import except_orm
 from odoo.addons.edi_tools.models.exceptions import EdiValidationError
 
 _logger = logging.getLogger(__name__)
@@ -38,10 +40,26 @@ class SaleOrder(models.Model):
     def edi_import_example_saleorder_validator(self, document_id):
         document = self.env['edi.tools.edi.document.incoming'].browse(document_id)
 
+        _logger.warning('edi_import_example_saleorder_validator')
         try:
+            _logger.warning('TRY JSON')
             datas = json.loads(document.content)
         except Exception as e:
-            raise EdiValidationError('Content is not valid JSON. %s' % (e))
+            _logger.warning('JSON FAIL %s', e)
+            pass
+        try:
+            dummy_file = StringIO(document.content)
+            datas = csv.reader(dummy_file, delimiter=',', quotechar='"')
+        except Exception as e:
+            _logger.warning('CSV FAIL %s', e)
+            raise EdiValidationError('Content is not valid CSV nor JSON. %s' % (e))
+
+        # try:
+        #     datas = json.loads(document.content)
+        # except Exception as e:
+        #     pass
+
+        #     raise EdiValidationError('Content is not valid JSON. %s' % (e))
 
         # for line in datas.get('lines', []):
         #     if not line.get('ean13'):
@@ -58,7 +76,18 @@ class SaleOrder(models.Model):
 
     @api.model
     def edi_import_example_saleorder(self, document):
-        data = json.loads(document.content)
+        _logger.warning('edi_import_example_saleorder')
+        filetype = document.name.split('.')[-1]
+        if filetype == 'json':
+            _logger.warning('JSON DATAS')
+            data = json.loads(document.content)
+        elif filetype == 'csv':
+            _logger.warning('CSV DATAS')
+            dummy_file = StringIO(document.content)
+            data = csv.reader(dummy_file, delimiter=';', quotechar='"')
+            _logger.warning('DATA %s', data)
+            for row in data:
+                _logger.warning(row)
 
         params = {
             'partner_id': document.partner_id.id,

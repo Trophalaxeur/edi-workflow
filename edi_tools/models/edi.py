@@ -457,10 +457,10 @@ class edi_tools_edi_document_incoming(models.Model):
         The process will move all the documents to the state "processing". '''
 
         # Find all documents that are ready to be processed
-        _logger.debug('Start the EDI document processor.')
+        _logger.warning('Start the EDI document processor.')
         documents = self.search([('state', '=', 'ready')])
         if not documents:
-            _logger.debug('No documents found, processing is done.')
+            _logger.warning('No documents found, processing is done.')
             return True
 
         # Mark all of these documents as in 'processing' to make sure they don't
