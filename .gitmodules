@@ -1,0 +1,6 @@
+[submodule "bots"]
+	path = bots
+	url = https://github.com/bots-edi/bots.git
+[submodule "bots-grammars"]
+	path = bots-grammars
+	url = https://github.com/bots-edi/bots-grammars.git

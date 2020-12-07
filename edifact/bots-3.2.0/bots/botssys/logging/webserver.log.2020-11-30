@@ -1,8 +1,0 @@
-20201130 08:32:14 STARTINFO: Bots webserver started.
-20201130 08:32:14 STARTINFO: Bots webserver configdir: "/home/flefevre/Project/scopea/docker_ferray/addons_ferray/edifact/bots-3.2.0/bots/config".
-20201130 08:32:14 STARTINFO: Bots webserver serving at port: "8080".
-20201130 08:32:14 STARTINFO: Bots webserver uses plain http (no ssl).
-20201130 08:32:24 STARTINFO: Bots webserver started.
-20201130 08:32:24 STARTINFO: Bots webserver configdir: "/home/flefevre/Project/scopea/docker_ferray/addons_ferray/edifact/bots-3.2.0/bots/config".
-20201130 08:32:24 STARTINFO: Bots webserver serving at port: "8080".
-20201130 08:32:24 STARTINFO: Bots webserver uses plain http (no ssl).
