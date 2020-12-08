@@ -2,17 +2,24 @@
 ##############################################################################
 # For copyright and license notices, see __openerp__.py file in root directory
 ##############################################################################
-from openerp import models, fields, api, exceptions, _
+from odoo import models, fields, api, exceptions, _
 import logging
 _log = logging.getLogger(__name__)
 try:
-    from bots import inmessage, outmessage, botsinit, botsglobal
-    from bots.outmessage import json as json_class
+    from odoo.addons.edifact.botsapi import inmessage
+except ImportError:
+    _log.warning('Error while importing bots libraries 1')
+try:
+    from odoo.addons.edifact.botsapi import outmessage, botsinit, botsglobal
+    from odoo.addons.edifact.botsapi.outmessage import json as json_class
+except ImportError:
+    _log.warning('Error while importing bots libraries 2')
+try:
     from os import listdir, remove, rename
     from os.path import isfile, join, exists
     import atexit
 except ImportError:
-    _log.warning('bots python lib not installed.')
+    _log.warning('Error while importing libraries')
 
 
 class EdifactDocument(models.Model):
@@ -122,10 +129,10 @@ class EdifactDocument(models.Model):
         return '/'.join([path, ttype, file_name])
 
     def read_from_file(self, path):
-        configdir = 'config'
+        configdir = '/mnt/extra-addons/edifact/botsapi/config'
         botsinit.generalinit(configdir)
         process_name = 'odoo_get_edi'
-        botsglobal.logger = botsinit.initenginelogging(process_name)
+        # botsglobal.logger = botsinit.initenginelogging(process_name)
         atexit.register(logging.shutdown)
         ta_info = {
             'alt': '',

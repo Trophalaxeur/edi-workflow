@@ -2,8 +2,8 @@
 ##############################################################################
 # For copyright and license notices, see __openerp__.py file in root directory
 ##############################################################################
-from openerp import models, fields
-from openerp import SUPERUSER_ID
+from odoo import models, fields
+from odoo import SUPERUSER_ID
 
 
 class ResCompany(models.Model):

@@ -37,10 +37,10 @@
         'views/res_company.xml',
         'views/menu.xml',
     ],
-    'external_dependencies': {
-        'python': [
-            'bots',
-        ],
-    },
+    # 'external_dependencies': {
+    #     'python': [
+    #         'bots',
+    #     ],
+    # },
     'installable': True,
 }

@@ -49,6 +49,7 @@ class EdifactDocument(models.Model):
         line_vals.update({'product_uom_qty': qty,
                           'price_unit': subtotal / qty,
                           'order_id': order.id})
+        _log.warning('LINE_VALS %s', line_vals)
         return line_vals
 
     def get_order_vals(self, data_dict):
