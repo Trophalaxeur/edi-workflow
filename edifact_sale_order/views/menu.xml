@@ -4,6 +4,11 @@
         <menuitem id="menu_edifact_sale_order"
                   parent="edifact.menu_edifact"
                   name="Sale Orders"/>
+            <menuitem id="menu_add_files_edifact_sale_order"
+                      parent="menu_edifact_sale_order"
+                      name="Add Files to Import"
+                      action="action_edifact_sale_order_add_files"
+                      groups="edifact.group_edifact"/>
             <menuitem id="menu_import_edifact_sale_order"
                       parent="menu_edifact_sale_order"
                       name="Import Orders"

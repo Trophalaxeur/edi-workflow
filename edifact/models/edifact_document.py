@@ -121,6 +121,13 @@ class EdifactDocument(models.Model):
         path = self.get_path('in')
         return self.ls_files(path, ttype)
 
+    def write_in_file(self, ttype, file_name, file_content):
+        path = self.get_path('in')
+        f = open('/'.join([path, ttype, file_name]), 'w+b')
+        f.write(file_content)
+        f.close()
+        return '/'.join([path, ttype, file_name])
+
     def write_out_file(self, ttype, file_name, file_content):
         path = self.get_path('out')
         f = open('/'.join([path, ttype, file_name]), 'w+')
@@ -131,7 +138,7 @@ class EdifactDocument(models.Model):
     def read_from_file(self, path):
         configdir = '/mnt/extra-addons/edifact/botsapi/config'
         botsinit.generalinit(configdir)
-        process_name = 'odoo_get_edi'
+        # process_name = 'odoo_get_edi'
         # botsglobal.logger = botsinit.initenginelogging(process_name)
         atexit.register(logging.shutdown)
         ta_info = {

@@ -34,6 +34,7 @@
     'data': [
         'data/data.xml',
         'wizard/edifact_sale_order_import.xml',
+        'wizard/edifact_sale_order_add_files.xml',
         'views/menu.xml',
         'views/edifact_document.xml',
     ],
