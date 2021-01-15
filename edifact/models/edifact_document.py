@@ -174,5 +174,4 @@ class EdifactDocument(models.Model):
         struc = [{ms.root.record['BOTSID']:
                  json_class._node2json(json_ins, ms.root)}
                  for ms in edifile.nextmessage()]
-        _log.warning("STRUC %s", struc)
         return struc

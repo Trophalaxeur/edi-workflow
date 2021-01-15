@@ -31,5 +31,5 @@ class edi_tools_edi_wizard_ready(models.TransientModel):
             # Push each document to ready
             # ---------------------------
             for document in self.env['edi.tools.edi.document.incoming'].browse(ids):
-                if document.state == 'new' or document.state == 'in_error'  or document.state == 'processing':
-                    document.action_ready()
+                # if document.state == 'new' or document.state == 'in_error'  or document.state == 'processing':
+                document.action_ready()

@@ -28,7 +28,7 @@ class sale_order(models.Model, EDIMixin):
 
         _logger.warning('edi_import_orders_d96a_validator')
         try:
-            _logger.warning('TRY JSON')
+            _logger.warning('TRY JSON 2')
             datas = json.loads(document.content)
         except Exception as e:
             _logger.warning('JSON FAIL %s', e)
