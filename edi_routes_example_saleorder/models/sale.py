@@ -127,8 +127,8 @@ class SaleOrder(models.Model):
             order_exist = self.env['sale.order'].search([('client_order_ref', '=', name)])
             if order_exist:
                 # self.move_file_to_duplicated(ffile)
-                _logger.error('DUPLICATED ! A GERER')
-                raise EdiValidationError('Duplicated !')
+                _logger.error('DUPLICATED ! A GERER (REF %s)', name)
+                raise EdiValidationError(_('Duplicated found (Order %s)') % (unh.get('0062')))
                 break
 
             order = self._create_order(data, unh)

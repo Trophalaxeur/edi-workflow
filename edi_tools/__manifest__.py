@@ -23,7 +23,7 @@
 {
     'name': 'EDI Tools',
     'summary': 'General Purpose Toolbox',
-    'version': '13.0.1',
+    'version': '13.0.2',
     'category': 'Tools',
     'description': "EDI Toolbox basic functionalities",
     'author': 'Florian Lefevre / Clubit',
@@ -31,6 +31,7 @@
     'data': [
         'data/edi_schedulers.xml',
         'security/security.xml',
+        'wizard/edi_wizard_import.xml',
         'views/edi_view.xml',
         'views/res_config.xml',
         'wizard/edi_wizard_ready.xml',

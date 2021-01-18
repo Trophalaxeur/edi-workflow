@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+        <!-- Importing wizard -->
+        <record id="view_edi_tools_import" model="ir.ui.view">
+            <field name="name">EDI Export</field>
+            <field name="model">edi.tools.import</field>
+            <field name="arch" type="xml">
+                <form string="Import EDI files to process stack" version="7.0">
+                    <p class="oe_grey">
+						Select files to upload
+					</p>
+                    <group>
+                      <field name="edi_files" widget="many2many_binary"/>
+                    </group>
+                    <group>
+                        <field name="partner_id" domain="[('edi_relevant','=','True')]"/>
+                        <field name="flow_id"/>
+                    </group>
+                    <footer>
+                        <button name="import_edi" string="Import" type="object"/>
+						<button
+                            class="oe_link" special="cancel" string="Cancel"/>
+                        
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+</odoo>
