@@ -83,7 +83,7 @@ class SaleOrder(models.Model):
 
         # dummy_file = StringIO(document.content)
         # data = csv.reader(dummy_file, delimiter=';', quotechar='"')
-        datas = self.env['edifact.document'].read_from_file(document.location + '/' + document.name)
+        datas = self.env['edi.edifact.parser'].read_from_file(document.location + '/' + document.name)
         return self.create_SO_from_data(datas)
 
 

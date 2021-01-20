@@ -8,6 +8,7 @@
         'edi_tools',
         'sale',
         'edi_sale_enable',
+        'edi_edifact_parser',
     ],
     'data': [
         'data/config.xml',
