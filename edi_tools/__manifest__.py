@@ -24,7 +24,7 @@
     'name': 'EDI Tools',
     'summary': 'General Purpose Toolbox',
     'version': '13.0.2',
-    'category': 'Tools',
+    'category': 'EDI Tools',
     'description': "EDI Toolbox basic functionalities",
     'author': 'Florian Lefevre / Clubit',
     'depends': ['base', 'mail','sale','account'],

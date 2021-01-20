@@ -5,11 +5,11 @@
     'category': 'EDI Tools',
     'author': 'Florian Lefevre / Clubit BVBA',
     'depends': [
-        'edi_tools',
         'sale',
         'point_of_sale', # Used to link partner with barcode
-        # 'edi_sale_enable',
+        'edi_tools',
         'edi_edifact_parser',
+        # 'edi_sale_enable',
     ],
     'data': [
         'data/config.xml',

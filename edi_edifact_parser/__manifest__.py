@@ -28,8 +28,10 @@
     'version': '13.0.1',
     'depends': [
         'base',
+        'edi_tools',
     ],
     'data': [
+        'views/res_config.xml',
     ],
     # 'external_dependencies': {
     #     'python': [

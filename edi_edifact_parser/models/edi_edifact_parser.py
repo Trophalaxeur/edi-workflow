@@ -24,7 +24,9 @@ class EdiEdifactParser(models.Model):
     _description = 'EDI Edifact Document'
 
     def read_from_file(self, path):
-        configdir = '/mnt/extra-addons/edifact/botsapi/config'
+        # configdir = '/mnt/extra-addons/edifact/botsapi/config'
+        ICPSudo = self.env['ir.config_parameter'].sudo()
+        configdir = ICPSudo.get_param('edi.bots_config_dir', default='config')
         botsinit.generalinit(configdir)
         # process_name = 'odoo_get_edi'
         # botsglobal.logger = botsinit.initenginelogging(process_name)
