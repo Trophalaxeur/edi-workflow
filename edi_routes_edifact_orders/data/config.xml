@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <data>
-        <record id="edi_example_saleorder_model_out" model="edi.tools.edi.flow">
+        <!-- <record id="edi_example_saleorder_model_out" model="edi.tools.edi.flow">
             <field name="name">Example Saleorder(out)</field>
             <field name="direction">out</field>
             <field name="model">sale.order</field>
             <field name="method">send_edi_export_example_saleorder</field>
-        </record>
+        </record> -->
 
-        <record id="edi_example_salesorder_delivery_in" model="edi.tools.edi.flow">
-            <field name="name">Example Salesorder(in)</field>
+        <record id="edi_edifact_orders_in" model="edi.tools.edi.flow">
+            <field name="name">Edifact Orders(in)</field>
             <field name="direction">in</field>
             <field name="model">sale.order</field>
-            <field name="method">receive_edi_import_example_saleorder</field>
-            <field name="validator">edi_import_example_saleorder_validator</field>
+            <field name="method">receive_edi_import_edifact_saleorder</field>
+            <field name="validator">edi_import_edifact_saleorder_validator</field>
         </record>
     </data>
 </odoo>

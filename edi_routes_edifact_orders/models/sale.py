@@ -38,10 +38,10 @@ class SaleOrder(models.Model):
         return self.env['sale.order'].edi_export(order)
 
     @api.model
-    def edi_import_example_saleorder_validator(self, document_id):
+    def edi_import_edifact_saleorder_validator(self, document_id):
         document = self.env['edi.tools.edi.document.incoming'].browse(document_id)
 
-        _logger.warning('edi_import_example_saleorder_validator')
+        _logger.warning('edi_import_edifact_saleorder_validator')
         try:
             datas = json.loads(document.content)
         except Exception as e:
@@ -68,7 +68,7 @@ class SaleOrder(models.Model):
         return True
 
     @api.model
-    def receive_edi_import_example_saleorder(self, document_id):
+    def receive_edi_import_edifact_saleorder(self, document_id):
         document = self.env['edi.tools.edi.document.incoming'].browse(document_id)
         return self.edi_import_example_saleorder(document)
 
