@@ -7,6 +7,7 @@
     'depends': [
         'edi_tools',
         'sale',
+        'point_of_sale', # Used to link partner with barcode
         # 'edi_sale_enable',
         'edi_edifact_parser',
     ],
