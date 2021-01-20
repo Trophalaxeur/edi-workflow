@@ -43,17 +43,13 @@ class SaleOrder(models.Model):
 
         _logger.warning('edi_import_example_saleorder_validator')
         try:
-            _logger.warning('TRY JSON 1')
             datas = json.loads(document.content)
         except Exception as e:
-            _logger.warning('JSON FAIL %s', e)
             pass
         try:
-            _logger.warning('TRY CSV')
             dummy_file = StringIO(document.content)
             datas = csv.reader(dummy_file, delimiter=',', quotechar='"')
         except Exception as e:
-            _logger.warning('CSV FAIL %s', e)
             raise EdiValidationError('Content is not valid CSV nor JSON. %s' % (e))
 
         # try:
@@ -78,11 +74,8 @@ class SaleOrder(models.Model):
 
     @api.model
     def edi_import_example_saleorder(self, document):
-        _logger.warning('IN edi_import_example_saleorder')
+        _logger.warning('import document %s', document.location + '/' + document.name)
         filetype = document.name.split('.')[-1]
-        _logger.warning('filetype %s', filetype)
-        _logger.warning('location %s', document.location + '/' + document.name)
-        _logger.warning('edifact.document %s', self.env['edifact.document'])
 
         if filetype != 'edi':
             _logger.error('Only EDI files are supported for now')
@@ -91,7 +84,6 @@ class SaleOrder(models.Model):
         # dummy_file = StringIO(document.content)
         # data = csv.reader(dummy_file, delimiter=';', quotechar='"')
         datas = self.env['edifact.document'].read_from_file(document.location + '/' + document.name)
-        _logger.warning('DATAS %s', datas)
         return self.create_SO_from_data(datas)
 
 
@@ -120,8 +112,8 @@ class SaleOrder(models.Model):
 
 
     def create_SO_from_data(self, datas):
+        _logger.warning('Create SO From datas %s', datas)
         for data in datas:
-            _logger.warning("- data_dict %s", data)
             unh = data.get('UNH', {})
             name = unh.get('0062')
             order_exist = self.env['sale.order'].search([('client_order_ref', '=', name)])
@@ -140,26 +132,21 @@ class SaleOrder(models.Model):
             # edi_doc.file_name = ffile
         return True
 
-    def _create_order_lines(self, lines, order, order_params):
-        _logger.warning('LINES %s', lines)
+    def _create_order_lines(self, lines, order_params):
         for lin in lines:
-            line_vals = self.get_order_line_vals(lin, order)
+            line_vals = self.get_order_line_vals(lin)
             order_params['order_line'].append([0, False, line_vals])
             # self.env['sale.order.line'].create(line_vals)
 
     def _create_order(self, data_dict, unh):
         order_vals = self.get_order_vals(data_dict)
 
-        _logger.warning('ORDER_VALS BEFORE%s', order_vals)
         # line_params = {}
         if unh.get('LOC'):
             for loc in unh.get('LOC'):
-                self._create_order_lines(loc.get('LIN'), False, order_vals)
-                # order_vals['order_line'].append([0, False, line_params])
+                self._create_order_lines(loc.get('LIN'), order_vals)
         else:
-            self._create_order_lines(unh.get('LIN'), False, order_vals)
-            # order_vals['order_line'].append([0, False, line_params])
-        _logger.warning('ORDER_VALS %s', order_vals)
+            self._create_order_lines(unh.get('LIN'), order_vals)
         order = self.env['sale.order'].create(order_vals)
 
         return order
@@ -184,13 +171,12 @@ class SaleOrder(models.Model):
 
         vals = {'order_line': []}
         unh = data_dict.get('UNH', {})
-        date_old_format = unh.get('DTM', [{}])[0].get('C507.2380')
+        # NOTE: We take only the first 8 char (YYYYMMDD)
+        date_old_format = unh.get('DTM', [{}])[0].get('C507.2380')[:8]
         vals['date_order'] = datetime.datetime.strptime(date_old_format, '%Y%m%d').strftime('%Y-%m-%d')
-        _logger.warning('DATE ORDER %s', vals['date_order'])
         currencies = _get_currency(vals, unh)
         vals['currency_id'] = currencies.exists() and currencies[0].id or None
         partner_data = _get_partner(vals, unh)
-        _logger.warning('partner_data %s', partner_data)
         vals.update({
             # 'ean': partner_data[1],
             'client_order_ref': unh.get('0062'),
@@ -199,8 +185,7 @@ class SaleOrder(models.Model):
         vals['user_id'] = user and user.id or None
         return vals
 
-    def get_order_line_vals(self, line_dict, order):
-        _logger.warning('LINE %s', line_dict)
+    def get_order_line_vals(self, line_dict):
         line_vals = {}
         # pias = line_dict.get('PIA')
         prod_vals = self.get_product_dict(line_dict)
@@ -209,32 +194,23 @@ class SaleOrder(models.Model):
         qty = float(line_dict.get('QTY')[0].get('C186.6060'))
         subtotal = float(line_dict.get('PRI')[0].get('C509.5118'))
         # subtotal = float(line_dict.get('MOA')[0].get('C516.5004'))
-        # line_vals.update({'product_uom_qty': qty,
-        #                   'price_unit': subtotal / qty,
-        #                   'order_id': order.id})
         line_vals.update({'product_uom_qty': qty,
                           'price_unit': subtotal / qty})
-        _logger.warning('LINE_VALS %s', line_vals)
         return line_vals
 
     def get_product_dict(self, line_dict):
         product_obj = self.env['product.product']
         # product_tpl_obj = self.env['product.template']
         prod = False
-        name = ''
         prod_vals = {}
         # pia_name = line_dict.get('C212#1.7140')
         pia_name = line_dict.get('C212.7140')
-        _logger.warning('LINE8DICT %s', line_dict)
-        _logger.warning('PIANAME %s', pia_name)
+        _logger.warning('Product code %s', pia_name)
         prod = product_obj.search([('barcode', 'ilike', pia_name)])
-        _logger.warning('PROD0 %s', prod)
         if not prod:
             prod = product_obj.search([('default_code', 'ilike', pia_name)])
-            _logger.warning('PROD1 %s', prod)
         if not prod:
             prod = product_obj.search([('name', 'ilike', pia_name)])
-            _logger.warning('PROD2 %s', prod)
         if prod:
             prod_vals['product_id'] = prod.id
         else:

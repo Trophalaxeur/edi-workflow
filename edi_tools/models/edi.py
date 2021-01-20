@@ -11,6 +11,8 @@ import xml.etree.cElementTree as ET
 from odoo.exceptions import ValidationError
 from odoo import api, _, fields, SUPERUSER_ID, tools, models
 from .exceptions import EdiIgnorePartnerError, EdiValidationError
+import traceback
+import sys
 
 _logger = logging.getLogger(__name__)
 
@@ -268,6 +270,7 @@ class edi_tools_edi_document_incoming(models.Model):
     def document_manual_process(self):
         for record in self:
             record.action_processing()
+            record.action_processed()
             return True
 
     @api.model
@@ -590,6 +593,8 @@ class edi_tools_edi_document_incoming(models.Model):
                 self.write({ 'state' : 'processed', 'processed' : True })
             except Exception as e:
                 document.message_post(body='Error occurred during processing, error given: {!s}'.format(str(e)))
+                traceback.print_exc()
+                _logger.error('EXCEPTION %s', e)
                 self.state = 'in_error'
                 self.write({ 'state' : 'in_error' })
                 return True
