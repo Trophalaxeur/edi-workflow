@@ -1,10 +1,12 @@
+# REF : https://www.gs1.org/sites/default/files/docs/eancom/ean02s4/part2/orders/031.htm#1ORDERS/BGM~20|1
+
 import json
 import csv
 import logging
 import datetime
 
 from io import StringIO
-from odoo import models, api, _
+from odoo import models, api, _, SUPERUSER_ID
 from odoo.exceptions import except_orm
 from odoo.addons.edi_tools.models.exceptions import EdiValidationError
 
@@ -115,15 +117,17 @@ class SaleOrder(models.Model):
         _logger.warning('Create SO From datas %s', datas)
         for data in datas:
             unh = data.get('UNH', {})
-            name = unh.get('0062')
-            order_exist = self.env['sale.order'].search([('client_order_ref', '=', name)])
+            bgm = unh.get('BGM')[0]
+            # order_ref = unh.get('0062')
+            order_ref = bgm.get('1004')
+            order_exist = self.env['sale.order'].search([('client_order_ref', '=', order_ref)])
             if order_exist:
                 # self.move_file_to_duplicated(ffile)
-                _logger.error('DUPLICATED ! A GERER (REF %s)', name)
-                raise EdiValidationError(_('Duplicated found (Order %s)') % (unh.get('0062')))
+                _logger.error('DUPLICATED ! A GERER (REF %s)', order_ref)
+                raise EdiValidationError(_('Duplicated found (Order %s)') % (order_ref))
                 break
 
-            order = self._create_order(data, unh)
+            order = self._create_order(data, order_ref, unh)
             # order_list.append(order)
             # edi_doc.import_log = '\n'.join([
             #     edi_doc.import_log, 'OK: %s' % unh.get('0062')])
@@ -138,20 +142,18 @@ class SaleOrder(models.Model):
             order_params['order_line'].append([0, False, line_vals])
             # self.env['sale.order.line'].create(line_vals)
 
-    def _create_order(self, data_dict, unh):
-        order_vals = self.get_order_vals(data_dict)
+    def _create_order(self, data_dict, order_ref, unh):
+        order_vals = self.get_order_vals(data_dict, order_ref)
 
-        # line_params = {}
         if unh.get('LOC'):
             for loc in unh.get('LOC'):
                 self._create_order_lines(loc.get('LIN'), order_vals)
         else:
             self._create_order_lines(unh.get('LIN'), order_vals)
         order = self.env['sale.order'].create(order_vals)
-
         return order
 
-    def get_order_vals(self, data_dict):
+    def get_order_vals(self, data_dict, order_ref):
         def _get_currency(vals, unh):
             return self.env['res.currency'].search(
                 [('name', '=', unh.get('CUX', [{}])[0].get('C504#1.6345'))])
@@ -166,7 +168,7 @@ class SaleOrder(models.Model):
             partner = self.env['res.partner'].search(
                 [('barcode', 'ilike', partner_ean)])
             if not partner:
-                raise EdiValidationError(_('No client with EAN %s found (Order %s)') % (partner_ean, unh.get('0062')))
+                raise EdiValidationError(_('No client with EAN %s found') % (partner_ean))
             return partner, partner_ean
 
         vals = {'order_line': []}
@@ -179,30 +181,29 @@ class SaleOrder(models.Model):
         partner_data = _get_partner(vals, unh)
         vals.update({
             # 'ean': partner_data[1],
-            'client_order_ref': unh.get('0062'),
+            'client_order_ref': order_ref,
             'partner_id': partner_data[0] and partner_data[0].id or None})
-        user = self.get_user()
-        vals['user_id'] = user and user.id or None
+        vals['user_id'] = SUPERUSER_ID
         return vals
 
     def get_order_line_vals(self, line_dict):
         line_vals = {}
-        # pias = line_dict.get('PIA')
-        prod_vals = self.get_product_dict(line_dict)
-        for key, value in prod_vals.items():
-            line_vals[key] = value
+        product = self.get_product(line_dict)
+        line_vals = {'product_id': product.id}
         qty = float(line_dict.get('QTY')[0].get('C186.6060'))
-        subtotal = float(line_dict.get('PRI')[0].get('C509.5118'))
+        try:
+            subtotal = float(line_dict.get('PRI')[0].get('C509.5118'))
+        except TypeError:
+            subtotal = product.list_price
         # subtotal = float(line_dict.get('MOA')[0].get('C516.5004'))
         line_vals.update({'product_uom_qty': qty,
                           'price_unit': subtotal / qty})
         return line_vals
 
-    def get_product_dict(self, line_dict):
+    def get_product(self, line_dict):
         product_obj = self.env['product.product']
         # product_tpl_obj = self.env['product.template']
         prod = False
-        prod_vals = {}
         # pia_name = line_dict.get('C212#1.7140')
         pia_name = line_dict.get('C212.7140')
         _logger.warning('Product code %s', pia_name)
@@ -211,13 +212,6 @@ class SaleOrder(models.Model):
             prod = product_obj.search([('default_code', 'ilike', pia_name)])
         if not prod:
             prod = product_obj.search([('name', 'ilike', pia_name)])
-        if prod:
-            prod_vals['product_id'] = prod.id
-        else:
-            # prod_vals['name'] = name
+        if not prod:
             raise EdiValidationError(_('No product with EAN %s found') % (pia_name))
-        return prod_vals
-
-    def get_user(self):
-        company = self.env['res.company'].browse(self.env.company.id)
-        return company and company.user_id or None
+        return prod

@@ -7,8 +7,8 @@ import logging
 _log = logging.getLogger(__name__)
 
 try:
-    from odoo.addons.edifact.botsapi import inmessage, outmessage, botsinit, botsglobal
-    from odoo.addons.edifact.botsapi.outmessage import json as json_class
+    from odoo.addons.edi_edifact_parser.botsapi import inmessage, outmessage, botsinit, botsglobal
+    from odoo.addons.edi_edifact_parser.botsapi.outmessage import json as json_class
 except ImportError:
     _log.warning('Error while importing bots libraries')
 try:
